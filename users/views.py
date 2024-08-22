@@ -1,14 +1,14 @@
 from fastapi import APIRouter
 
-from .bodyies import CreateUser
+from .schemas import CreateUser
+from . import crud
 
 
-router = APIRouter(tags=['users'])
+router = APIRouter(prefix='/users',
+                   tags=['users'],
+                   )
 
 
-@router.post('/users/')
+@router.post('/create/')
 def create_user(user: CreateUser):
-    return {
-        'message': 'success',
-        'email': user.email,
-    }
+    return crud.create_user(user)
