@@ -1,10 +1,13 @@
 from datetime import datetime
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import String, func
 
 from config.models import Base
+
+if TYPE_CHECKING:
+    from .post import Post
 
 
 class User(Base):
@@ -16,3 +19,5 @@ class User(Base):
     create_date: Mapped[datetime] = mapped_column(insert_default=func.now())
     password1: Mapped[str]
     password1: Mapped[str]
+
+    posts: Mapped[list['Post']] = relationship(back_populates='user')
