@@ -8,6 +8,7 @@ from config.models import Base
 
 if TYPE_CHECKING:
     from .post import Post
+    from .profile import Profile
 
 
 class User(Base):
@@ -18,6 +19,7 @@ class User(Base):
     phone: Mapped[str] = mapped_column(nullable=True)
     create_date: Mapped[datetime] = mapped_column(insert_default=func.now())
     password1: Mapped[str]
-    password1: Mapped[str]
+    password2: Mapped[str]
 
     posts: Mapped[list['Post']] = relationship(back_populates='user')
+    profile: Mapped['Profile'] = relationship(back_populates='user')

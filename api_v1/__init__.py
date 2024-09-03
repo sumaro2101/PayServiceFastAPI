@@ -2,10 +2,16 @@ from fastapi import APIRouter
 
 from .products.views import router as products
 from .users.views import router as users
+from .posts.views import router as posts
+from .orders.views import router as orders
 
 
 router = APIRouter()
 router.include_router(products,
                       prefix='/api/v1')
 router.include_router(users,
+                      prefix='/api/v1')
+router.include_router(posts,
+                      prefix='/api/v1')
+router.include_router(orders,
                       prefix='/api/v1')
