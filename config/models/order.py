@@ -5,8 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Union, TYPE_CHECKING
 
 from .base import Base
-from .mixins import UserRelationMixin
-from .m2m_order_product import order_product_association_table as m2m_order_product
 
 if TYPE_CHECKING:
     from .product import Product
@@ -21,6 +19,6 @@ class Order(Base):
                                                   server_default=func.now(),
                                                   )
     products: Mapped[list['Product']] = relationship(
-        secondary=m2m_order_product,
+        secondary='order_product_association',
         back_populates='orders',
     )
