@@ -4,6 +4,7 @@ from .products.views import router as products
 from .users.views import router as users
 from .posts.views import router as posts
 from .orders.views import router as orders
+from .auth.views import router as auth
 
 
 router = APIRouter()
@@ -14,4 +15,6 @@ router.include_router(users,
 router.include_router(posts,
                       prefix='/api/v1')
 router.include_router(orders,
+                      prefix='/api/v1')
+router.include_router(auth,
                       prefix='/api/v1')
