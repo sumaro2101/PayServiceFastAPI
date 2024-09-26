@@ -12,7 +12,7 @@ class DataBaseHelper:
 
     def __init__(self) -> None:
         self.engine = create_async_engine(
-            url=settings.db_url,
+            url=settings.db.url,
             echo=settings.debug,
         )
         self.session = async_sessionmaker(

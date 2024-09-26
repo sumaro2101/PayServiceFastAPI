@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from sqlalchemy.engine import Result
 
-from .models import Product
+from config.models.product import Product
 from .schemas import ProductCreate, ProductUpdate
 
 
