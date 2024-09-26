@@ -19,7 +19,7 @@ class AuthJWT(BaseModel):
     PRIVATE_KEY_PATH: Path = CERTS_DIR / 'jwt-private.pem'
     PUBLIC_KEY_PATH: Path = CERTS_DIR / 'jwt-public.pem'
     ALGORITHM: str = os.getenv('ALGORITHM_JWT_AUTH')
-    EXPIRE_MINUTES: int = 3
+    EXPIRE_MINUTES: int = 10
 
 
 class Settings(BaseSettings):

@@ -13,6 +13,7 @@ class BaseUserSchema(BaseModel):
     username : Annotated[str, MinLen(3), MaxLen(50)]
     phone: Union[str, None] = Field(default=None)
     email: EmailStr
+    active: bool = True
 
 
 class BaseProfileUser(BaseModel):
@@ -40,7 +41,7 @@ class UserCreateSchema(BaseUserSchema):
     """
 
     password1: str
-    password2: str    
+    password2: str
 
 
 class UserAuthSchema(BaseModel):

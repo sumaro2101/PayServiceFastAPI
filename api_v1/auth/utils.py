@@ -1,11 +1,10 @@
-import secrets
-from typing import Annotated, Any
+from typing import Any
 import jwt
 import bcrypt
+from datetime import timedelta, datetime, timezone
 
-from fastapi import security
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi import Depends, Header
+from fastapi.security import HTTPBasic
+from fastapi import Header
 
 from .exeptions import UnauthedExpeption
 from config.config import settings
@@ -15,14 +14,20 @@ def encode_jwt(payload: dict[str, Any],
                 private_key: str | bytes = settings.AUTH_JWT.PRIVATE_KEY_PATH.read_text(encoding='UTF-8'),
                 algorithm: str | None = settings.AUTH_JWT.ALGORITHM,
                 expire: int = settings.AUTH_JWT.EXPIRE_MINUTES,
+                expire_minutes: timedelta | None = None
                 ):
     """
     JWT разкодировка ключа
     """
     to_encode = payload.copy()
-    expire = expire
+    now = datetime.now(timezone.utc)
+    if expire_minutes:
+        expire = now + expire_minutes
+    else:
+        expire = now + timedelta(minutes=expire)
     to_encode.update(
-        exp=expire
+        exp=expire,
+        iat=now,
     )
     encoded = jwt.encode(payload=to_encode,
                          key=private_key,
@@ -62,7 +67,7 @@ def check_password(password: str,
     """
     Проверка пароля
     """
-    return bcrypt.checkpw(password=password,
+    return bcrypt.checkpw(password=str(password).encode('utf-8'),
                           hashed_password=hashed_password,
                           )
 

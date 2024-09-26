@@ -10,6 +10,7 @@ from .schemas import (UserCreateSchema,
                       )
 from . import crud
 from .dependencies import get_user_by_id, get_profile_by_id
+from .permissions import authenticate, is_current_user
 
 
 router = APIRouter(prefix='/users',
@@ -20,10 +21,13 @@ router = APIRouter(prefix='/users',
 @router.get('/{user_id}/',
             name='Получение пользователя',
             )
-async def get_user_api_view(user: User = Depends(get_user_by_id)):
+async def get_user_api_view(
+    authenticate: User = Depends(authenticate),
+    user_id: User = Depends(get_user_by_id),
+                            ):
     """Получение пользователя
     """
-    return user
+    return user_id
 
 
 @router.get('/',
@@ -49,11 +53,11 @@ async def create_user(user: UserCreateSchema,
               name='Обновление пользователя',
               )
 async def update_user(attrs: UserUpdateSchema,
-                      user: User = Depends(get_user_by_id),
+                      is_current_user: User = Depends(is_current_user),
                       session: AsyncSession = Depends(db_helper.session_geter)):
     """Обновление пользователя
     """
-    return await crud.update_user(user=user,
+    return await crud.update_user(user=is_current_user,
                                   attrs=attrs,
                                   session=session)
 
@@ -63,14 +67,15 @@ async def update_user(attrs: UserUpdateSchema,
                status_code=status.HTTP_204_NO_CONTENT,
                responses=None,
                )
-async def delete_user(user: User = Depends(get_user_by_id),
+async def delete_user(is_current_user: User = Depends(is_current_user),
                       session: AsyncSession = Depends(db_helper.session_geter),
                       ):
     """Удаление пользователя
     """
-    await crud.delete_user(user=user,
-                     session=session,
-                     )
+    await crud.delete_user(user=is_current_user,
+                            session=session,
+                            )
+    return dict(user='Удаление успешно завершено!')
 
 
 # profile
@@ -79,13 +84,11 @@ async def delete_user(user: User = Depends(get_user_by_id),
              status_code=status.HTTP_201_CREATED,
              )
 async def profile_create_api_view(attrs: ProfileCreateShema,
-                                  user_id: Annotated[int,
-                                                     Path(ge=1),
-                                                     ],
+                                  is_current_user: User = Depends(is_current_user),
                                   session: AsyncSession = Depends(db_helper.session_geter),
                                   ):
     profile = await crud.create_profile(attrs=attrs,
-                                        user=user_id,
+                                        user_id=is_current_user,
                                         session=session)
     return profile
 
@@ -93,5 +96,7 @@ async def profile_create_api_view(attrs: ProfileCreateShema,
 @router.get('/profile/{profile_id}/',
             name='Получение профиля',
             )
-async def get_profile_api_view(profile: Profile = Depends(get_profile_by_id)):
+async def get_profile_api_view(authenticate: User = Depends(authenticate),
+                               profile: Profile = Depends(get_profile_by_id),
+                               ):
     return profile

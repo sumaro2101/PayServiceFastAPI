@@ -4,6 +4,8 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from .schemas import UserCreateSchema, UserUpdateSchema, ProfileCreateShema
 from config.models import User, Profile
+from .utils import PasswordsHandler
+
 
 # for dependencies
 async def get_user(user_id: int,
@@ -11,7 +13,11 @@ async def get_user(user_id: int,
                    ) -> User:
     """Механизм получения пользователя
     """
-    stmt = Select(User).where(User.id == user_id).options(joinedload(User.profile), joinedload(User.posts))
+    stmt = (Select(User).
+            where(User.id == user_id).
+            options(joinedload(User.profile),
+                    joinedload(User.posts),
+                    ))
     user = await session.scalar(stmt)
     return user
 
@@ -27,12 +33,17 @@ async def get_list_users(session: AsyncSession) -> list[User]:
     return list(users)
 
 
-async def create_user(user: UserCreateSchema,
+async def create_user(user_create: UserCreateSchema,
                       session: AsyncSession,
                       ) -> User:
     """Механизм создания пользователя
     """
-    user = User(**UserCreateSchema.model_dump(user))
+    hashed_password = PasswordsHandler(password1=user_create.password1,
+                                       password2=user_create.password2,
+                                       ).get_hash_password()
+    user = User(**UserCreateSchema.model_dump(user_create, exclude=('password1', 'password2')),
+                password=hashed_password,
+                )
     session.add(user)
     await session.commit()
     session.refresh(user)
