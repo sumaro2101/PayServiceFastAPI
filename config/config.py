@@ -20,6 +20,10 @@ class AuthJWT(BaseModel):
     PUBLIC_KEY_PATH: Path = CERTS_DIR / 'jwt-public.pem'
     ALGORITHM: str = os.getenv('ALGORITHM_JWT_AUTH')
     EXPIRE_MINUTES: int = 10
+    REFRESH_EXPIRE_MINUTES: int = ((60 * 24) * 30)
+    TOKEN_TYPE_FIELD: str = 'type'
+    ACCESS_TOKEN_TYPE: str = 'access'
+    REFRESH_TOKEN_TYPE: str = 'refresh'
 
 
 class Settings(BaseSettings):

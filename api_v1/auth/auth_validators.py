@@ -5,12 +5,13 @@ from jwt import InvalidTokenError
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api_v1.auth.utils import get_hash_password, check_password, decode_jwt
+from api_v1.auth.utils import check_password, decode_jwt
 from api_v1.users.schemas import UserAuthSchema
 from config.models import User, db_helper
+from config.config import settings
 
 
-# http_bearer = HTTPBearer()
+http_bearer = HTTPBearer()
 oauth_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login/')
 
 
@@ -45,9 +46,9 @@ async def validate_auth_user(session: AsyncSession = Depends(db_helper.session_g
 
 
 def get_current_payload(credentials: Annotated[HTTPAuthorizationCredentials,
-                                             Depends(oauth_scheme)],
+                                             Depends(http_bearer)],
                       ) -> UserAuthSchema:
-    token = credentials
+    token = credentials.credentials
     try:
         payload = decode_jwt(token)
     except InvalidTokenError:
@@ -60,6 +61,11 @@ def get_current_payload(credentials: Annotated[HTTPAuthorizationCredentials,
 async def get_current_user(payload: dict = Depends(get_current_payload),
                             session: AsyncSession = Depends(db_helper.session_geter),
                             ):
+    token_type = payload.get(settings.AUTH_JWT.TOKEN_TYPE_FIELD)
+    if token_type and token_type != settings.AUTH_JWT.ACCESS_TOKEN_TYPE:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail=dict(user=f'Не верный тип токена, ожидался - {settings.AUTH_JWT.ACCESS_TOKEN_TYPE}'),
+                            )
     username = payload.get('username')
     stmt = Select(User).where(User.username == username)
     user = await session.scalar(stmt)
