@@ -1,0 +1,110 @@
+from typing import Any
+import jwt
+import bcrypt
+from datetime import timedelta, datetime, timezone
+
+from fastapi.security import HTTPBasic
+from fastapi import HTTPException, Header, status
+
+from .exeptions import UnauthedExpeption
+from config.config import settings
+
+
+def encode_jwt(payload: dict[str, Any],
+                private_key: str | bytes = settings.AUTH_JWT.PRIVATE_KEY_PATH.read_text(encoding='UTF-8'),
+                algorithm: str | None = settings.AUTH_JWT.ALGORITHM,
+                expire: int = settings.AUTH_JWT.EXPIRE_MINUTES,
+                expire_minutes: timedelta | None = None
+                ):
+    """
+    JWT разкодировка ключа
+    """
+    to_encode = payload.copy()
+    now = datetime.now(timezone.utc)
+    if expire_minutes:
+        expire = now + expire_minutes
+    else:
+        expire = now + timedelta(minutes=expire)
+    to_encode.update(
+        exp=expire,
+        iat=now,
+    )
+    encoded = jwt.encode(payload=to_encode,
+                         key=private_key,
+                         algorithm=algorithm,
+                         )
+    return encoded
+
+
+def decode_jwt(jwt_key: str | bytes,
+                key: str | bytes = settings.AUTH_JWT.PUBLIC_KEY_PATH.read_text(encoding='UTF-8'),
+                algorithms: str = settings.AUTH_JWT.ALGORITHM,
+                ):
+    """
+    JWT кодировка ключа
+    """
+    decoded = jwt.decode(jwt=jwt_key,
+                         key=key,
+                         algorithms=algorithms,
+                         )
+    return decoded
+
+
+def get_hash_password(password: str) -> bytes:
+    """
+    Хеширование пароля
+    """
+    salt = bcrypt.gensalt()
+    password_bytes: bytes = password.encode(encoding='UTF-8')
+    return bcrypt.hashpw(password=password_bytes,
+                         salt=salt,
+                         )
+
+
+def check_password(password: str,
+                   hashed_password: bytes,
+                   ) -> bool:
+    """
+    Проверка пароля
+    """
+    return bcrypt.checkpw(password=str(password).encode('utf-8'),
+                          hashed_password=hashed_password,
+                          )
+
+
+def check_type_token(token: str, type_token: str) -> None:
+    if token and token != type_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail=dict(user=f'Не верный тип токена, ожидался - {type_token}'),
+                            )
+
+
+users_test = {
+    '06d1fe67897493b302cb1ac264975b88592dfbfe1774fca36be3a68da9e1149a': 'admin',
+}
+
+security = HTTPBasic()
+
+
+# def get_auth_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)]) -> str:
+    
+#     if credentials.username not in users_test:
+#         raise UnauthedExpeption(detail=Settings.FAIL_BASIC_AUTH)
+
+#     correct_password = users_test.get(credentials.username)
+
+#     if not secrets.compare_digest(
+#         credentials.password.encode('utf-8'),
+#         correct_password.encode('utf-8')
+#     ):
+#         raise UnauthedExpeption(detail="Токен не валидный")
+
+#     return credentials.username
+
+
+def get_auth_user_static_token(
+    auth_token: str = Header(alias='x-auth-token')
+):
+    if username := users_test.get(auth_token):
+        return username
+    raise UnauthedExpeption(detail="Токен не валидный")

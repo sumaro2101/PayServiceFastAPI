@@ -178,3 +178,7 @@ cython_debug/
 */*.ini
 dump.rdb
 .vscode
+test.py
+
+# certs
+certs/
