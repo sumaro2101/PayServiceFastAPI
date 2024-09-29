@@ -4,7 +4,7 @@ import bcrypt
 from datetime import timedelta, datetime, timezone
 
 from fastapi.security import HTTPBasic
-from fastapi import Header
+from fastapi import HTTPException, Header, status
 
 from .exeptions import UnauthedExpeption
 from config.config import settings
@@ -70,6 +70,13 @@ def check_password(password: str,
     return bcrypt.checkpw(password=str(password).encode('utf-8'),
                           hashed_password=hashed_password,
                           )
+
+
+def check_type_token(token: str, type_token: str) -> None:
+    if token and token != type_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail=dict(user=f'Не верный тип токена, ожидался - {type_token}'),
+                            )
 
 
 users_test = {
