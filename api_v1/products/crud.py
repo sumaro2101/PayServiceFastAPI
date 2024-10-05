@@ -1,11 +1,12 @@
 from typing import Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, exc
 from sqlalchemy.engine import Result
 
 from config.models.product import Product
 from .schemas import ProductCreate, ProductUpdate
+from api_stripe.api import Stripe
 
 
 async def get_products(session: AsyncSession) -> Union[list[Product] |
@@ -36,6 +37,8 @@ async def product_create(session: AsyncSession,
     session.add(product)
     await session.commit()
     session.refresh(product)
+    stripe = Stripe(product=product)
+    await stripe.register()
     return product
 
 
