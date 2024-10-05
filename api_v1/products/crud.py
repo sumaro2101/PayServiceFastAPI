@@ -37,7 +37,7 @@ async def product_create(session: AsyncSession,
     session.add(product)
     await session.commit()
     session.refresh(product)
-    stripe = Stripe(product=product)
+    stripe = Stripe(product)
     await stripe.register()
     return product
 

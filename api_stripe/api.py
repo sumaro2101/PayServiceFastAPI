@@ -1,6 +1,7 @@
 import stripe
 import os
-from typing import Optional
+from typing import List, Optional
+from loguru import logger
 
 from config.models import Product
 from .exeptions import ErrorTypeProductStripe
@@ -93,6 +94,15 @@ class Stripe:
         )
         return created_price
 
+    async def get_by_name(self):
+        """
+        Получение продукта по Имени
+        """
+        price = await self._search_product(
+            name=self._name,
+        )
+        return price
+
     async def get_by_id(self):
         """
         Получение продукта по ID
@@ -117,3 +127,48 @@ class Stripe:
             product=product,
             price=self._price,
         )
+        return price
+
+
+class StripeItems:
+    """
+    Класс отвечающий за множественные действия с сущностями Stripe
+    """
+    __key: str = os.getenv('STRIPE_API')
+
+    def __init__(self,
+                 *products: List[int],
+                 ) -> None:
+        self._ids_products = list(products)
+        stripe.api_key = self.__key
+
+    async def _get_products(self,
+                            ids_products: List[int],
+                            ) -> stripe.ListObject:
+        products = await stripe.Product.list_async(
+            ids=ids_products,
+            type='good',
+            limit=100,
+        )
+        return products
+
+    async def _get_prices(self,
+                          products: stripe.ListObject,
+                          ) -> stripe.SearchResultObject:
+        field_search = 'AND'.join([f'product:{product.id}'
+                                   for product
+                                   in products.data])
+        prices = await stripe.Price.search_async(query=field_search)
+        return prices
+
+    @logger.catch(reraise=True)
+    async def get_list(self):
+        products = await self._get_products(
+            ids_products=self._ids_products,
+        )
+        logger.info(f'_get_products get {products}')
+        prices = await self._get_prices(
+            products=products,
+        )
+        logger.info(f'_get_prices get {prices}')
+        return prices
