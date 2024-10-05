@@ -20,7 +20,12 @@ class RabbitSettings(BaseModel):
 
 
 class DBSettings(BaseModel):
-    url: str = os.getenv('DB_URL')
+    _engine: str = os.getenv('DB_ENGINE')
+    _owner: str = os.getenv('DB_USER')
+    _password: str = os.getenv('DB_PASSWORD')
+    _name: str = os.getenv('DB_HOST')
+    _db_name: str = os.getenv('DB_NAME')
+    url: str = f'{_engine}://{_owner}:{_password}@{_name}/{_db_name}'
 
 
 class AuthJWT(BaseModel):
