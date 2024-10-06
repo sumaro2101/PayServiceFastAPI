@@ -1,6 +1,6 @@
 import stripe
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 from loguru import logger
 
 from config.models import Product
@@ -211,28 +211,43 @@ class StripeItems:
     """
     Класс отвечающий за множественные действия с сущностями Stripe
     """
-    __key: str = settings.STRIPE.API_KEY
-
     def __init__(self,
-                 *products: List[int],
+                 products: List[int],
+                 add_key: bool = False,
                  ) -> None:
         self._ids_products = list(products)
-        stripe.api_key = self.__key
+        if add_key:
+            self.__add_key()
 
+    async def _get_products(self,
+                            ids_products: List[int],
+                            ) -> stripe.ListObject:
+        """
+        Получение списка товаров
+        """
+        field_search = (int(id_) for id_ in ids_products)
+        products = await stripe.Product.list_async(
+            ids=field_search,
+            type='good',
+        )
+        return products
+
+    @logger.catch(reraise=True)
     async def _get_prices(self,
-                          ids_products: List[int],
+                          products: stripe.ListObject,
                           ) -> stripe.SearchResultObject:
         """
         Получение цен на товары
         """
-        field_search = ' AND '.join([f'product:{product.id}'
+        logger.info(f'_get_prices get products {products}')
+        field_search = ' AND '.join([f'product:"{product.id}"'
                                    for product
-                                   in ids_products.data])
+                                   in products.data])
         prices = await stripe.Price.search_async(query=field_search)
         return prices
 
     @logger.catch(reraise=True)
-    async def get_list(self):
+    async def get_list(self) -> stripe.SearchResultObject:
         """
         Получение списка цен на товары
         """
@@ -245,3 +260,72 @@ class StripeItems:
         )
         logger.info(f'_get_prices get {prices}')
         return prices
+
+    def __add_key(self):
+        stripe.api_key = settings.STRIPE.API_KEY
+
+
+class StripeSession:
+    """
+    Класс отвечающий за сессии страйп
+    """
+    __key: str = settings.STRIPE.API_KEY
+
+    def __init__(self,
+                 user_id: int,
+                 products: List[int],
+                 promo: Any = None
+                 ) -> None:
+        self._user_id = user_id
+        self._ids_products = products
+        self._items = StripeItems(products=self._ids_products)
+        self._promo = promo
+        stripe.api_key = self.__key
+
+    def _get_discount_promo(self,
+                            promo: Any,
+                            ) -> stripe.checkout.Session.CreateParamsDiscount:
+        pass
+
+    def _get_list_prices(self,
+                         prices: stripe.SearchResultObject,
+                         ) -> List[stripe.checkout.Session.CreateParamsLineItem]:
+        list_prices = [
+            stripe.checkout.Session.CreateParamsLineItem(
+                price=price,
+                quantity=1,
+            )
+            for price
+            in prices.data
+        ]
+        return list_prices
+
+    async def _create_session_payment(self):
+        """
+        Создание сессии
+        """
+        prices: stripe.SearchResultObject = await self._items.get_list()
+        list_prices = self._get_list_prices(prices=prices)
+        params = dict(currency='rub',
+                      line_items=list_prices,
+                      mode='payment',
+                      submit_type='pay',
+                      metadata=dict(items=self._ids_products,
+                                    user_id=self._user_id,
+                                    ),
+                      )
+        if self._promo:
+            promo = self._get_discount_promo()
+            params.update(discounts=promo)
+            params['metadata'].update(promo=promo.coupon)
+        created_session = await stripe.checkout.Session.create_async(
+            **params
+        )
+        return created_session
+
+    async def get_session_payments(self):
+        """
+        Получение сессии для оплаты товаров
+        """
+        session = await self._create_session_payment()
+        return session
