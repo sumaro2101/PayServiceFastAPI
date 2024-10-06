@@ -6,6 +6,7 @@ from sqlalchemy.engine import Result
 
 from config.models.product import Product
 from .schemas import ProductCreate, ProductUpdate
+from .utils import add_params
 from api_stripe.api import Stripe
 
 
@@ -47,10 +48,17 @@ async def product_update(session: AsyncSession,
                          product_update: ProductUpdate) -> Product:
     """Обновление продукта
     """
-    
-    for name, value in product_update.model_dump(exclude_unset=True).items():
+    updated_params = product_update.model_dump(exclude_unset=True)
+    for name, value in updated_params.items():
         setattr(product, name, value)
     await session.commit()
+    stripe_update = add_params(updated_params,
+                               id=product.id,
+                               )
+    stripe = Stripe(product=None,
+                    update_params=stripe_update,
+                    )
+    await stripe.update()
     return product
 
 

@@ -12,6 +12,10 @@ CERTS_DIR = BASE_DIR / 'certs'
 
 load_dotenv('.env')
 
+class StripeSettings(BaseModel):
+    API_KEY: str = os.getenv('STRIPE_API')
+
+
 class RabbitSettings(BaseModel):
     RMQ_HOST: str = os.getenv('RMQ_HOST')
     RMQ_PORT: str = os.getenv('RMQ_PORT')
@@ -46,6 +50,7 @@ class Settings(BaseSettings):
     FAIL_BASIC_AUTH: str = 'Не верный логин или пароль'
     FAIL_TOKEN_AUTH: str = 'Токен не валидный'
     AUTH_JWT: AuthJWT = AuthJWT()
+    STRIPE: StripeSettings = StripeSettings()
 
 
 settings = Settings()

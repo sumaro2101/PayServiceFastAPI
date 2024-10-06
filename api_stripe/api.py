@@ -4,7 +4,11 @@ from typing import List, Optional
 from loguru import logger
 
 from config.models import Product
-from .exeptions import ErrorTypeProductStripe
+from config.config import settings
+from .exeptions import (ErrorTypeProductStripe,
+                        MultipleChoiseParamsError,
+                        DoNotFindIDProductError,
+                        )
 
 
 class Stripe:
@@ -12,22 +16,39 @@ class Stripe:
     Страйп - платежная система
     Данный класс предназначен для обработки 
     """
-    __key: str = os.getenv('STRIPE_API')
+    __key: str = settings.STRIPE.API_KEY
 
     def __init__(self,
-                 product: Product,
+                 product: Optional[Product],
+                 update_params: Optional[dict]
                  ) -> None:
-        if not isinstance(product, Product):
+        if not isinstance(product, (Product | None)):
             raise ErrorTypeProductStripe(
                 f'{product} - данный тип не может быть зарегистрированным',
                 )
+        if not isinstance(update_params, (dict | None)):
+            raise ErrorTypeProductStripe(
+                f'{update_params} - должен быть словарем ключ: значение',
+                )
+        if product and update_params:
+            raise MultipleChoiseParamsError(
+                'Необходимо указать только один из аргументов',
+                )
+        if not product and not update_params:
+            raise MultipleChoiseParamsError(
+                'Необходимо указать хотя бы один из аргументов',
+            )
         stripe.api_key = self.__key
         self.product = product
-        self._id = self.product.id
-        self._name = self.product.name
-        self._price = self.product.price * 100
-        self._active = self.product.is_active
-        self._description = 'default'
+        if self.product:
+            self._id = self.product.id
+            self._name = self.product.name
+            self._price = self.product.price * 100
+            self._active = self.product.is_active
+            self._description = 'default'
+        self._update_params = update_params.copy()
+        if not self._check_id():
+            raise DoNotFindIDProductError('Не указан ID')
 
     async def _search_price(self,
                             id: int,
@@ -36,7 +57,7 @@ class Stripe:
         Поиск цены продукта
         """
         get_price = await stripe.Price.search_async(
-                query=f'product:"{id}"',
+                query=f'product:"{id}" AND active: "true"',
                 )
         return get_price
 
@@ -94,6 +115,44 @@ class Stripe:
         )
         return created_price
 
+    def _check_id(self):
+        return 'id' in self._update_params.keys()
+
+    def _check_price(self):
+        return 'price' in self._update_params.keys()
+
+    async def _update_product(self,
+                              id: int,
+                              params_update: dict
+                              ) -> stripe.Product:
+        """
+        Обновление продукта
+        """
+        updated_product = await stripe.Product.modify_async(
+            id=str(id),
+            **params_update
+        )
+        return updated_product
+
+    @logger.catch(reraise=True)
+    async def _update_price(self,
+                            product: stripe.Product,
+                            id: str,
+                            price: int,
+                            ) -> stripe.Price:
+        """
+        Обновление цены на продукт
+        """
+        updated_price = await stripe.Price.modify_async(
+            id=id,
+            active=False,
+        )
+        await self._create_price(
+            product=product,
+            price=price * 100
+        )
+        return updated_price
+
     async def get_by_name(self):
         """
         Получение продукта по Имени
@@ -111,6 +170,24 @@ class Stripe:
             id=self._id,
         )
         return price
+
+    async def update(self) -> None:
+        """
+        Обновление продукта
+        """
+        id_ = self._update_params.pop('id')
+        if self._check_price():
+            price = self._update_params.pop('price')
+        product = await self._update_product(
+            id=id_,
+            params_update=self._update_params
+        )
+        prod_price = await self._search_price(id=product.id)
+        await self._update_price(
+            product=product,
+            id=prod_price.data[0].id,
+            price=price,
+        )
 
     async def register(self):
         """
@@ -134,7 +211,7 @@ class StripeItems:
     """
     Класс отвечающий за множественные действия с сущностями Stripe
     """
-    __key: str = os.getenv('STRIPE_API')
+    __key: str = settings.STRIPE.API_KEY
 
     def __init__(self,
                  *products: List[int],
@@ -142,27 +219,23 @@ class StripeItems:
         self._ids_products = list(products)
         stripe.api_key = self.__key
 
-    async def _get_products(self,
-                            ids_products: List[int],
-                            ) -> stripe.ListObject:
-        products = await stripe.Product.list_async(
-            ids=ids_products,
-            type='good',
-            limit=100,
-        )
-        return products
-
     async def _get_prices(self,
-                          products: stripe.ListObject,
+                          ids_products: List[int],
                           ) -> stripe.SearchResultObject:
-        field_search = 'AND'.join([f'product:{product.id}'
+        """
+        Получение цен на товары
+        """
+        field_search = ' AND '.join([f'product:{product.id}'
                                    for product
-                                   in products.data])
+                                   in ids_products.data])
         prices = await stripe.Price.search_async(query=field_search)
         return prices
 
     @logger.catch(reraise=True)
     async def get_list(self):
+        """
+        Получение списка цен на товары
+        """
         products = await self._get_products(
             ids_products=self._ids_products,
         )
