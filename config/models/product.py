@@ -10,6 +10,7 @@ from config.models import Base
 
 if TYPE_CHECKING:
     from .order import Order
+    from .basket import Basket
 
 
 ADD_NOW_TIME = partial(mapped_column,
@@ -30,5 +31,9 @@ class Product(Base):
 
     orders: Mapped[list['Order']] = relationship(
         secondary='order_product_association',
+        back_populates='products',
+    )
+    baskets: Mapped[list['Basket']] = relationship(
+        secondary='basket_product_association',
         back_populates='products',
     )

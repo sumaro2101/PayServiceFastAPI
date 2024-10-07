@@ -20,7 +20,7 @@ class Stripe:
 
     def __init__(self,
                  product: Optional[Product],
-                 update_params: Optional[dict]
+                 update_params: Optional[dict] = None
                  ) -> None:
         if not isinstance(product, (Product | None)):
             raise ErrorTypeProductStripe(
@@ -46,9 +46,10 @@ class Stripe:
             self._price = self.product.price * 100
             self._active = self.product.is_active
             self._description = 'default'
-        self._update_params = update_params.copy()
-        if not self._check_id():
-            raise DoNotFindIDProductError('Не указан ID')
+        if update_params:
+            self._update_params = update_params.copy()
+            if not self._check_id():
+                raise DoNotFindIDProductError('Не указан ID')
 
     async def _search_price(self,
                             id: int,
