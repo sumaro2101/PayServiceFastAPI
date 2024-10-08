@@ -6,6 +6,8 @@ from datetime import timedelta, datetime, timezone
 from fastapi.security import HTTPBasic
 from fastapi import HTTPException, Header, status
 
+from config.models.user import User
+
 from .exeptions import UnauthedExpeption
 from config.config import settings
 
@@ -61,6 +63,47 @@ def get_hash_password(password: str) -> bytes:
                          )
 
 
+def get_values_user(username: str,
+                    create_date: datetime,
+                    email: str) -> str:
+    year = create_date.year
+    mouth = create_date.month
+    day = create_date.day
+    hour = create_date.hour
+    minute = create_date.minute
+    second = create_date.second
+    
+    return f'{username}-{year}-{mouth}-{day}-{hour}-{minute}-{second}-{email}'
+
+
+def get_hash_user(value: str) -> bytes:
+    """Хеширование пользователя
+    """
+    salt = bcrypt.gensalt()
+    value_bytes: bytes = value.encode(encoding='utf-8')
+    return bcrypt.hashpw(password=value_bytes,
+                         salt=salt,
+                         )
+
+
+def check_user(user: User,
+               hashed_value: str,
+               ) -> bool:
+    """
+    Проверка пользователя
+    """
+    username = user.username
+    create_date = user.create_date
+    email = user.email
+    values = get_values_user(username=username,
+                             create_date=create_date,
+                             email=email,
+                             )
+    return bcrypt.checkpw(password=values.encode(encoding='utf-8'),
+                          hashed_password=str(hashed_value).encode(encoding='utf-8'),
+                          )
+
+
 def check_password(password: str,
                    hashed_password: bytes,
                    ) -> bool:
@@ -77,34 +120,3 @@ def check_type_token(token: str, type_token: str) -> None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail=dict(user=f'Не верный тип токена, ожидался - {type_token}'),
                             )
-
-
-users_test = {
-    '06d1fe67897493b302cb1ac264975b88592dfbfe1774fca36be3a68da9e1149a': 'admin',
-}
-
-security = HTTPBasic()
-
-
-# def get_auth_user(credentials: Annotated[HTTPBasicCredentials, Depends(security)]) -> str:
-    
-#     if credentials.username not in users_test:
-#         raise UnauthedExpeption(detail=Settings.FAIL_BASIC_AUTH)
-
-#     correct_password = users_test.get(credentials.username)
-
-#     if not secrets.compare_digest(
-#         credentials.password.encode('utf-8'),
-#         correct_password.encode('utf-8')
-#     ):
-#         raise UnauthedExpeption(detail="Токен не валидный")
-
-#     return credentials.username
-
-
-def get_auth_user_static_token(
-    auth_token: str = Header(alias='x-auth-token')
-):
-    if username := users_test.get(auth_token):
-        return username
-    raise UnauthedExpeption(detail="Токен не валидный")

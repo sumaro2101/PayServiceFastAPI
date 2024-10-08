@@ -1,11 +1,13 @@
 from typing import Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, exc
 from sqlalchemy.engine import Result
 
 from config.models.product import Product
 from .schemas import ProductCreate, ProductUpdate
+from .utils import add_params
+from api_stripe.api import Stripe
 
 
 async def get_products(session: AsyncSession) -> Union[list[Product] |
@@ -22,9 +24,8 @@ async def get_product(session: AsyncSession,
                       product_id: int) -> Union[Product | None]:
     """ Получение товара по ID
     """
-    stmt = select(Product).where(Product.id==product_id)
-    result: Result = await session.execute(stmt)
-    product = result.scalars().first()
+    stmt = select(Product).where(Product.id == product_id)
+    product = await session.scalar(stmt)
     return product
 
 
@@ -36,6 +37,8 @@ async def product_create(session: AsyncSession,
     session.add(product)
     await session.commit()
     session.refresh(product)
+    stripe = Stripe(product)
+    await stripe.register()
     return product
 
 
@@ -44,10 +47,17 @@ async def product_update(session: AsyncSession,
                          product_update: ProductUpdate) -> Product:
     """Обновление продукта
     """
-    
-    for name, value in product_update.model_dump(exclude_unset=True).items():
+    updated_params = product_update.model_dump(exclude_unset=True)
+    for name, value in updated_params.items():
         setattr(product, name, value)
     await session.commit()
+    stripe_update = add_params(updated_params,
+                               id=product.id,
+                               )
+    stripe = Stripe(product=None,
+                    update_params=stripe_update,
+                    )
+    await stripe.update()
     return product
 
 

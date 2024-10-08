@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Union
 
@@ -10,6 +11,7 @@ class ProductBase(BaseModel):
     name: str
     description: str
     price: int
+    is_active: bool
 
 
 class ProductUpdate(BaseModel):
@@ -34,3 +36,5 @@ class Product(ProductBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    created_at: datetime
+    updated_at: datetime
