@@ -5,6 +5,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from .schemas import UserCreateSchema, UserUpdateSchema, ProfileCreateShema
 from config.models import User, Profile
 from .utils import PasswordsHandler
+from loguru import logger
 
 
 # for dependencies
@@ -22,6 +23,7 @@ async def get_user(user_id: int,
     return user
 
 
+@logger.catch(reraise=True)
 async def get_list_users(session: AsyncSession) -> list[User]:
     """Вывод всех пользователей
     """
@@ -46,7 +48,7 @@ async def create_user(user_create: UserCreateSchema,
                 )
     session.add(user)
     await session.commit()
-    session.refresh(user)
+    await session.refresh(user)
     return user
 
 

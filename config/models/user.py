@@ -10,6 +10,8 @@ from config.models import Base
 if TYPE_CHECKING:
     from .post import Post
     from .profile import Profile
+    from .basket import Basket
+    from .order import Order
 
 
 class User(Base):
@@ -24,3 +26,6 @@ class User(Base):
 
     posts: Mapped[list['Post']] = relationship(back_populates='user')
     profile: Mapped['Profile'] = relationship(back_populates='user')
+    basket: Mapped['Basket'] = relationship(back_populates='user')
+    orders: Mapped[list['Order']] = relationship(back_populates='user')
+

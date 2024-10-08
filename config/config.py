@@ -12,6 +12,10 @@ CERTS_DIR = BASE_DIR / 'certs'
 
 load_dotenv('.env')
 
+class StripeSettings(BaseModel):
+    API_KEY: str = os.getenv('STRIPE_API')
+
+
 class RabbitSettings(BaseModel):
     RMQ_HOST: str = os.getenv('RMQ_HOST')
     RMQ_PORT: str = os.getenv('RMQ_PORT')
@@ -32,7 +36,7 @@ class AuthJWT(BaseModel):
     PRIVATE_KEY_PATH: Path = CERTS_DIR / 'jwt-private.pem'
     PUBLIC_KEY_PATH: Path = CERTS_DIR / 'jwt-public.pem'
     ALGORITHM: str = os.getenv('ALGORITHM_JWT_AUTH')
-    EXPIRE_MINUTES: int = 10
+    EXPIRE_MINUTES: int = 60
     REFRESH_EXPIRE_MINUTES: int = ((60 * 24) * 30)
     TOKEN_TYPE_FIELD: str = 'type'
     ACCESS_TOKEN_TYPE: str = 'access'
@@ -40,12 +44,15 @@ class AuthJWT(BaseModel):
 
 
 class Settings(BaseSettings):
+    SECRET_KEY: str = os.getenv('SECRET_KEY')
+    LIFESPAN_TOKEN: int = 60 * 5
     db: DBSettings = DBSettings()
     rabbit: RabbitSettings = RabbitSettings()
     debug: bool = bool(int(os.getenv('DEBUG')))
     FAIL_BASIC_AUTH: str = 'Не верный логин или пароль'
     FAIL_TOKEN_AUTH: str = 'Токен не валидный'
     AUTH_JWT: AuthJWT = AuthJWT()
+    STRIPE: StripeSettings = StripeSettings()
 
 
 settings = Settings()
