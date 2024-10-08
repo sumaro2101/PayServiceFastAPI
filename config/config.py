@@ -36,7 +36,7 @@ class AuthJWT(BaseModel):
     PRIVATE_KEY_PATH: Path = CERTS_DIR / 'jwt-private.pem'
     PUBLIC_KEY_PATH: Path = CERTS_DIR / 'jwt-public.pem'
     ALGORITHM: str = os.getenv('ALGORITHM_JWT_AUTH')
-    EXPIRE_MINUTES: int = 10
+    EXPIRE_MINUTES: int = 60
     REFRESH_EXPIRE_MINUTES: int = ((60 * 24) * 30)
     TOKEN_TYPE_FIELD: str = 'type'
     ACCESS_TOKEN_TYPE: str = 'access'
@@ -44,6 +44,8 @@ class AuthJWT(BaseModel):
 
 
 class Settings(BaseSettings):
+    SECRET_KEY: str = os.getenv('SECRET_KEY')
+    LIFESPAN_TOKEN: int = 60 * 5
     db: DBSettings = DBSettings()
     rabbit: RabbitSettings = RabbitSettings()
     debug: bool = bool(int(os.getenv('DEBUG')))

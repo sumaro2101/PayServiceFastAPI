@@ -17,6 +17,14 @@ async def get_basket(basket: Basket = Depends(get_or_create_basket)):
     return basket
 
 
+@router.get(path='/buy/')
+async def buy_products(basket: Basket = Depends(get_or_create_basket)):
+    answer = await crud.buy_products(basket=basket)
+    return dict(state='success',
+                url_payment=answer.url,
+                )
+
+
 @router.put(path='/add-product/{product_id}/')
 async def add_products(basket: Basket = Depends(get_or_create_basket),
                        product: Product = Depends(get_product_by_id),

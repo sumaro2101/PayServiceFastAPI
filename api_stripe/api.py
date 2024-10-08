@@ -1,14 +1,19 @@
+from datetime import datetime
 import stripe
-import os
 from typing import Any, List, Optional
+
 from loguru import logger
 
 from config.models import Product
 from config.config import settings
+from config.models.user import User
 from .exeptions import (ErrorTypeProductStripe,
                         MultipleChoiseParamsError,
                         DoNotFindIDProductError,
                         )
+from config.models import Product
+from api_v1.auth.utils import get_hash_user, get_values_user
+from api_v1.auth.hasher import UserPathHasher
 
 
 class Stripe:
@@ -213,20 +218,21 @@ class StripeItems:
     Класс отвечающий за множественные действия с сущностями Stripe
     """
     def __init__(self,
-                 products: List[int],
+                 products: List[Product],
                  add_key: bool = False,
                  ) -> None:
         self._ids_products = list(products)
         if add_key:
             self.__add_key()
 
+    @logger.catch(reraise=True)
     async def _get_products(self,
-                            ids_products: List[int],
+                            ids_products: List[Product],
                             ) -> stripe.ListObject:
         """
         Получение списка товаров
         """
-        field_search = (int(id_) for id_ in ids_products)
+        field_search = [product.id for product in ids_products]
         products = await stripe.Product.list_async(
             ids=field_search,
             type='good',
@@ -240,8 +246,7 @@ class StripeItems:
         """
         Получение цен на товары
         """
-        logger.info(f'_get_prices get products {products}')
-        field_search = ' AND '.join([f'product:"{product.id}"'
+        field_search = ' OR '.join([f'product:"{product.id}" AND active:"true"'
                                    for product
                                    in products.data])
         prices = await stripe.Price.search_async(query=field_search)
@@ -268,25 +273,37 @@ class StripeItems:
 
 class StripeSession:
     """
-    Класс отвечающий за сессии страйп
+    Класс отвечающий за сессии Stripe
     """
     __key: str = settings.STRIPE.API_KEY
 
     def __init__(self,
-                 user_id: int,
-                 products: List[int],
+                 user: User,
+                 products: List[Product],
                  promo: Any = None
                  ) -> None:
-        self._user_id = user_id
+        self.__user = user
+        self._user_id = self.__user.id
         self._ids_products = products
         self._items = StripeItems(products=self._ids_products)
         self._promo = promo
+        self.__url = r'http://localhost:8080/api/v1/payments/'
         stripe.api_key = self.__key
 
     def _get_discount_promo(self,
                             promo: Any,
                             ) -> stripe.checkout.Session.CreateParamsDiscount:
         pass
+
+    def _get_success_url(self) -> str:
+        path_hasher = UserPathHasher(user=self.__user)
+        path = path_hasher.make_url_token()
+        url = self.__url + f'success/{path}'
+        return url
+
+    def _get_cancel_url(self) -> str:
+        url = self.__url + f'cancel/'
+        return url
 
     def _get_list_prices(self,
                          prices: stripe.SearchResultObject,
@@ -301,20 +318,33 @@ class StripeSession:
         ]
         return list_prices
 
+    def _update_meta_ids(self,
+                         products: List[Product],
+                         ) -> dict[str, str]:
+        ids = {str(product.id): str(product.id)
+               for product
+               in products}
+        return ids
+
     async def _create_session_payment(self):
         """
         Создание сессии
         """
         prices: stripe.SearchResultObject = await self._items.get_list()
         list_prices = self._get_list_prices(prices=prices)
+        success_url = self._get_success_url()
+        ids = self._update_meta_ids(products=self._ids_products)
+        logger.info(f'_create_session_payment success_url - \n{success_url}')
+        return_url = self._get_cancel_url()
         params = dict(currency='rub',
                       line_items=list_prices,
                       mode='payment',
                       submit_type='pay',
-                      metadata=dict(items=self._ids_products,
-                                    user_id=self._user_id,
-                                    ),
+                      metadata=dict(user_id=str(self._user_id)) | ids,
+                      success_url=success_url,
+                      cancel_url=return_url,
                       )
+        logger.info(f'_create_session_payment params - \n{params}')
         if self._promo:
             promo = self._get_discount_promo()
             params.update(discounts=promo)

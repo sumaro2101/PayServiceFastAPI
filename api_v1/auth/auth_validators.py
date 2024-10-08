@@ -8,7 +8,10 @@ from jwt import InvalidTokenError
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from loguru import logger
+
 from api_v1.auth.utils import check_password, decode_jwt, check_type_token
+from api_v1.auth.hasher import UserPathHasher
 from api_v1.users.schemas import UserAuthSchema
 from config.models import User, db_helper
 from config.config import settings
@@ -16,6 +19,21 @@ from config.config import settings
 
 http_bearer = HTTPBearer()
 oauth_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login/')
+
+
+async def get_user_by_hash(uid: str,
+                           token: str,
+                           session: AsyncSession = Depends(db_helper.session_geter)):
+    user_id = int(UserPathHasher.urlsafe_base64_decode(uid=uid).decode())
+    logger.info(f'user_id = {user_id}')
+    stmt = Select(User).where(User.id == user_id)
+    user: User = await session.scalar(statement=stmt)
+    path_hasher = UserPathHasher(user=user)
+    if path_hasher.check_token(token=token):
+        return user
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=dict(permission='Доступ запрещен'))
 
 
 async def validate_auth_user(session: AsyncSession = Depends(db_helper.session_geter),

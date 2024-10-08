@@ -13,6 +13,7 @@ class BaseBasketSchema(BaseModel):
 class BasketSchema(BaseBasketSchema):
     id: int
 
+ 
 class BasketView(BaseModel):
     model_config = ConfigDict()
 
