@@ -38,3 +38,12 @@ class Product(ProductBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+
+class ActivityProductSchema(BaseModel):
+    """
+    Схема активности продукта
+    """
+    id: int
+    price: int
+    is_active: bool

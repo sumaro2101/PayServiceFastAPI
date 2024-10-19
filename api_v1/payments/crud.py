@@ -2,6 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import Select
 from sqlalchemy.orm import joinedload
 
+from fastapi import HTTPException, status
+
 from loguru import logger
 from config.models import User, Basket, Order
 
@@ -46,11 +48,15 @@ async def success_payment(user: User,
                           session: AsyncSession,
                           ) -> dict[str, str, Order]:
     basket = await get_basket(user=user,
-                        session=session,
-                        )
+                              session=session,
+                              )
+    if not basket.products:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=dict(basket='Basket is empty'),
+                            )
     order = await create_order(user=user,
-                         session=session,
-                         )
+                               session=session,
+                               )
     fill_order = await switch_products_to_order(
         basket=basket,
         order=order,
