@@ -1,216 +1,345 @@
-from datetime import datetime
 import stripe
-from typing import Any, List, Optional
+from stripe import _error as error
+from typing import Any, List
 
 from loguru import logger
+
+from fastapi import status, HTTPException
 
 from config.models import Product
 from config.config import settings
 from config.models.user import User
-from .exeptions import (ErrorTypeProductStripe,
-                        MultipleChoiseParamsError,
-                        DoNotFindIDProductError,
+from .exeptions import (NotFindInputError,
+                        NotCorrectInputType,
                         )
 from config.models import Product
-from api_v1.auth.utils import get_hash_user, get_values_user
 from api_v1.auth.hasher import UserPathHasher
+from .abs import Stripe
+from .types import (TargerItem,
+                    StripeType,
+                    StipeResult,
+                    SessionParams,
+                    Session,
+                    )
+from .handler import error_stripe_handle
 
 
-class Stripe:
+class CreateStripeItem(Stripe):
     """
-    Страйп - платежная система
-    Данный класс предназначен для обработки 
+    Создание Stripe объекта
     """
     __key: str = settings.STRIPE.API_KEY
 
-    def __init__(self,
-                 product: Optional[Product],
-                 update_params: Optional[dict] = None
-                 ) -> None:
-        if not isinstance(product, (Product | None)):
-            raise ErrorTypeProductStripe(
-                f'{product} - данный тип не может быть зарегистрированным',
-                )
-        if not isinstance(update_params, (dict | None)):
-            raise ErrorTypeProductStripe(
-                f'{update_params} - должен быть словарем ключ: значение',
-                )
-        if product and update_params:
-            raise MultipleChoiseParamsError(
-                'Необходимо указать только один из аргументов',
-                )
-        if not product and not update_params:
-            raise MultipleChoiseParamsError(
-                'Необходимо указать хотя бы один из аргументов',
-            )
+    def __init__(self, target: TargerItem) -> None:
+        self._target = target.copy()
         stripe.api_key = self.__key
-        self.product = product
-        if self.product:
-            self._id = self.product.id
-            self._name = self.product.name
-            self._price = self.product.price * 100
-            self._active = self.product.is_active
-            self._description = 'default'
-        if update_params:
-            self._update_params = update_params.copy()
-            if not self._check_id():
-                raise DoNotFindIDProductError('Не указан ID')
 
+    def _correct_target(self, target: TargerItem) -> None:
+        if not target:
+            raise NotFindInputError('Не был указан объект для обработки')
+        if not isinstance(target, dict):
+            raise NotCorrectInputType(f'Ожидался тип словарь, не {target}')
+        required_params = frozenset(('id', 'name', 'price'))
+        not_correct = required_params - target.keys()
+        logger.info(f'check correct = {not_correct}')
+        if not_correct:
+            raise NotCorrectInputType(f'Не верные данные, не хватает аргументов {not_correct}')
+        return
+
+    async def _create_product(self,
+                              target: TargerItem,
+                              ) -> stripe.Price:
+        """
+        Создание цены для продукта
+        """
+        self._correct_target(target=target)
+        meta_data = dict(id=target['id'])
+        product_value = stripe.Price.CreateParamsProductData(
+            active=True,
+            id=target['id'],
+            name=target['name'],
+            metadata=meta_data,
+        )
+        created_price = await stripe.Price.create_async(
+            unit_amount=target['price'] * 100,
+            currency='rub',
+            product_data=product_value,
+            metadata=meta_data,
+        )
+        return created_price
+
+    async def action(self):
+        """
+        Регистрация продукта в системе Stripe
+        """
+        logger.info(f'product = {self._target}')
+        price = await self._create_product(
+            target=self._target,
+        )
+        return price
+
+
+class UpdateStripeItem(Stripe):
+    """
+    Обновление Stripe объекта
+    """
+    __key: str = settings.STRIPE.API_KEY
+
+    def __init__(self, target: TargerItem) -> None:
+        self._target = target.copy()
+        stripe.api_key = self.__key
+
+    def _correct_target(self, target: TargerItem) -> None:
+        if not target:
+            raise NotFindInputError('Не был указан объект для обработки')
+        if not isinstance(target, dict):
+            raise NotCorrectInputType(f'Ожидался тип словарь, не {target}')
+        required_params = frozenset(('id',))
+        not_correct = required_params - target.keys()
+        logger.info(f'check correct = {not_correct}')
+        if not_correct:
+            raise NotCorrectInputType(f'Не верные данные, не хватает аргументов {not_correct}')
+        return
+
+    @logger.catch(reraise=True)
     async def _search_price(self,
                             id: int,
-                            ) -> stripe.Price:
+                            ) -> StripeType:
         """
         Поиск цены продукта
         """
         get_price = await stripe.Price.search_async(
-                query=f'product:"{id}" AND active: "true"',
+                query=f'metadata["id"]:"{id}" AND active: "true"',
                 )
+        logger.info(f'get_price = {get_price}')
         return get_price
-
-    async def _search_product(self,
-                              name: str,
-                              ) -> Optional[stripe.Price]:
-        """
-        Поиск продукта из системы Stripe
-        """
-        get_product = await stripe.Product.search_async(
-            query=f'name~"{name}"',
-            )
-        if get_product:
-            id_ = get_product.data[0].id
-            price = await self._search_price(id=id_)
-            return price
-
-    def _get_descriptions_item(self,
-                               product: Product,
-                               ) -> str:
-        """
-        Получение описания продукта
-        """
-        description = product.description
-        return description if description else self._description
-
-    async def _create_product(self,
-                              id: int,
-                              name: str,
-                              description: str,
-                              active: bool
-                              ) -> stripe.Product:
-        """
-        Создание продукта на площадке Stripe
-        """
-        created_product = await stripe.Product.create_async(
-            id=id,
-            name=name,
-            description=description,
-            active=active,
-            type='good',
-        )
-        return created_product
-
+    
     async def _create_price(self,
-                            product: stripe.Product,
-                            price: int) -> stripe.Price:
-        """
-        Создание цены для продукта
-        """
-        created_price = await stripe.Price.create_async(
-            unit_amount=price,
+                            product_id:int,
+                            price: int,
+                            ):
+        meta = dict(id=product_id)
+        prefetch_create = await stripe.Price.create_async(
+            active=True,
             currency='rub',
-            product=product.id,
+            metadata=meta,
+            product=product_id,
+            unit_amount=price,
         )
-        return created_price
-
-    def _check_id(self):
-        return 'id' in self._update_params.keys()
-
-    def _check_price(self):
-        return 'price' in self._update_params.keys()
-
-    async def _update_product(self,
-                              id: int,
-                              params_update: dict
-                              ) -> stripe.Product:
-        """
-        Обновление продукта
-        """
-        updated_product = await stripe.Product.modify_async(
-            id=str(id),
-            **params_update
-        )
-        return updated_product
+        return prefetch_create
 
     @logger.catch(reraise=True)
-    async def _update_price(self,
-                            product: stripe.Product,
+    async def _deactivate_price(self,
                             id: str,
-                            price: int,
-                            ) -> stripe.Price:
+                            ) -> StripeType:
         """
         Обновление цены на продукт
         """
         updated_price = await stripe.Price.modify_async(
-            id=id,
+            id=str(id),
             active=False,
         )
-        await self._create_price(
-            product=product,
-            price=price * 100
-        )
         return updated_price
-
-    async def get_by_name(self):
-        """
-        Получение продукта по Имени
-        """
-        price = await self._search_product(
-            name=self._name,
+    
+    async def _update_item(self,
+                           id:int,
+                           target: TargerItem,
+                           ) -> StripeType:
+        updated_product = await stripe.Product.modify_async(
+            id=str(id),
+            **target
         )
-        return price
+        return updated_product
 
-    async def get_by_id(self):
-        """
-        Получение продукта по ID
-        """
-        price = await self._search_price(
-            id=self._id,
-        )
-        return price
-
-    async def update(self) -> None:
+    async def _update_product(self,
+                              target: TargerItem,
+                              ) -> StripeType:
         """
         Обновление продукта
         """
-        id_ = self._update_params.pop('id')
-        if self._check_price():
-            price = self._update_params.pop('price')
-        product = await self._update_product(
-            id=id_,
-            params_update=self._update_params
-        )
-        prod_price = await self._search_price(id=product.id)
-        await self._update_price(
-            product=product,
-            id=prod_price.data[0].id,
-            price=price,
+        self._correct_target(target=target)
+        id_ = target.pop('id')
+        if 'price' in target.keys():
+            price = target.pop('price')
+            logger.info(f'id = {id_}')
+            prod_price = await self._search_price(id=id_)
+            await self._deactivate_price(
+                id=prod_price.data[0].id,
+            )
+            await self._create_price(
+                product_id=id_,
+                price=price * 100
+            )
+        logger.info(f'len target = {len(target)}')
+        if len(target) > 0:
+            product = await self._update_item(
+                id=id_,
+                target=target
+            )
+            return product
+
+    async def action(self) -> StripeType:
+        """
+        Обновление продукта
+        """
+        return await self._update_product(
+            target=self._target,
         )
 
-    async def register(self):
-        """
-        Регистрация продукта в система Stripe
-        """
-        description = self._get_descriptions_item(self.product)
-        product = await self._create_product(
-            id=self._id,
-            name=self._name,
-            description=description,
-            active=self._active,
+
+class ActivateStipeItem(Stripe):
+    """
+    Активация Stripe объекта
+    Активирует объект и последнюю цену
+    """
+    __key: str = settings.STRIPE.API_KEY
+    def __init__(self, target: TargerItem) -> None:
+        self._target = target.copy()
+        stripe.api_key = self.__key
+
+    def _correct_target(self, target: TargerItem) -> None:
+        if not target:
+            raise NotFindInputError('Не был указан объект для обработки')
+        if not isinstance(target, dict):
+            raise NotCorrectInputType(f'Ожидался тип словарь, не {target}')
+        required_params = frozenset(('id',))
+        not_correct = required_params - target.keys()
+        logger.info(f'check correct = {not_correct}')
+        if not_correct:
+            raise NotCorrectInputType(f'Не верные данные, не хватает аргументов {not_correct}')
+        return
+    
+    async def _activate_item(self,
+                             id: int,
+                             ) -> StripeType:
+        product = await stripe.Product.modify_async(
+            id=str(id),
+            active=True,
         )
-        price = await self._create_price(
-            product=product,
-            price=self._price,
+        return product
+
+    async def _search_prices(self,
+                             id: int,
+                             ) -> StipeResult:
+        meta = f'metadata["id"]:"{id}"'
+        prices = await stripe.Price.search_async(
+            query=meta,
         )
-        return price
+        return prices.data
+
+    async def _activate_last_price(self,
+                                   prices: StipeResult,
+                                   ) -> StripeType:
+        last_price = prices[0]
+        await stripe.Price.modify_async(
+            id=last_price.id,
+            active=True,
+        )
+
+    async def _activate_product(self,
+                                target: StripeType,
+                                ):
+        self._correct_target(target=target)
+        await self._activate_item(
+            id=target['id'],
+        )
+        prices = await self._search_prices(
+            id=target['id'],
+        )
+        await self._activate_last_price(
+            prices=prices,
+        )
+
+    async def action(self):
+        """Активация продукта
+        """
+        await self._activate_product(
+            target=self._target,
+        )
+
+
+class DeactivateStripeItem(Stripe):
+    """
+    Деактивация Stripe объекта
+    """
+    __key: str = settings.STRIPE.API_KEY
+
+    def __init__(self, target: TargerItem) -> None:
+        self._target = target.copy()
+        stripe.api_key = self.__key
+
+    def _correct_target(self, target: TargerItem) -> None:
+        if not target:
+            raise NotFindInputError('Не был указан объект для обработки')
+        if not isinstance(target, dict):
+            raise NotCorrectInputType(f'Ожидался тип словарь, не {target}')
+        required_params = frozenset(('id',))
+        not_correct = required_params - target.keys()
+        logger.info(f'check correct = {not_correct}')
+        if not_correct:
+            raise NotCorrectInputType(f'Не верные данные, не хватает аргументов {not_correct}')
+        return
+
+    @logger.catch(reraise=True)
+    async def _search_price(self,
+                            id: int,
+                            ) -> StripeType:
+        """
+        Поиск цены продукта
+        """
+        logger.info(f'search_price by {id}')
+        get_price = await stripe.Price.search_async(
+                query=f'metadata["id"]:"{id}" AND active: "true"',
+                )
+        logger.info(f'get_price = {get_price}')
+        return get_price
+
+    async def _deactivate_price(self,
+                            price_id: int,
+                            ) -> None:
+        await stripe.Price.modify_async(
+            id=str(price_id),
+            active=False,
+        )
+
+    async def _deactivate_item(self,
+                          id: int,
+                          ) -> None:
+        await stripe.Product.modify_async(
+            id=str(id),
+            active=False,
+        )
+
+    async def _deactivate_product(self,
+                              target: TargerItem,
+                              ) -> None:
+        self._correct_target(target=target)
+        price = await self._search_price(id=target['id'])
+        price_list = price.data
+        [await self._deactivate_price(
+            price_id=price.id,
+            )
+         for price
+         in price_list]
+        await self._deactivate_item(
+            id=target['id']
+        )
+
+    async def action(self) -> StripeType:
+        """
+        Деактивация продукта
+        """
+        try:
+            return await self._deactivate_product(
+                target=self._target,
+            )
+        except error.InvalidRequestError as err:
+            stripe_error = error_stripe_handle(err=err)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(stripe=stripe_error,
+                                            product='Product has been deleted in server',
+                                            ),
+                                )
 
 
 class StripeItems:
@@ -221,51 +350,34 @@ class StripeItems:
                  products: List[Product],
                  add_key: bool = False,
                  ) -> None:
-        self._ids_products = list(products)
+        self._products = list(products)
         if add_key:
             self.__add_key()
 
     @logger.catch(reraise=True)
-    async def _get_products(self,
-                            ids_products: List[Product],
-                            ) -> stripe.ListObject:
-        """
-        Получение списка товаров
-        """
-        field_search = [product.id for product in ids_products]
-        products = await stripe.Product.list_async(
-            ids=field_search,
-            type='good',
-        )
-        return products
-
-    @logger.catch(reraise=True)
     async def _get_prices(self,
-                          products: stripe.ListObject,
-                          ) -> stripe.SearchResultObject:
+                          products: list[Product],
+                          ) -> StipeResult:
         """
         Получение цен на товары
         """
-        field_search = ' OR '.join([f'product:"{product.id}" AND active:"true"'
+        field_search = ' OR '.join([f'metadata["id"]:"{product.id}"'
                                    for product
-                                   in products.data])
+                                   in products])
+        logger.info(f'search_fields = {field_search}')
         prices = await stripe.Price.search_async(query=field_search)
         return prices
 
     @logger.catch(reraise=True)
-    async def get_list(self) -> stripe.SearchResultObject:
+    async def get_list(self) -> StipeResult:
         """
         Получение списка цен на товары
         """
-        products = await self._get_products(
-            ids_products=self._ids_products,
-        )
-        logger.info(f'_get_products get {products}')
         prices = await self._get_prices(
-            products=products,
+            products=self._products,
         )
         logger.info(f'_get_prices get {prices}')
-        return prices
+        return prices.data
 
     def __add_key(self):
         stripe.api_key = settings.STRIPE.API_KEY
@@ -284,8 +396,8 @@ class StripeSession:
                  ) -> None:
         self.__user = user
         self._user_id = self.__user.id
-        self._ids_products = products
-        self._items = StripeItems(products=self._ids_products)
+        self._products = products
+        self._items = StripeItems(products=self._products)
         self._promo = promo
         self.__url = r'http://localhost:8080/api/v1/payments/'
         stripe.api_key = self.__key
@@ -306,34 +418,35 @@ class StripeSession:
         return url
 
     def _get_list_prices(self,
-                         prices: stripe.SearchResultObject,
-                         ) -> List[stripe.checkout.Session.CreateParamsLineItem]:
+                         prices: StipeResult,
+                         ) -> SessionParams:
         list_prices = [
             stripe.checkout.Session.CreateParamsLineItem(
                 price=price,
                 quantity=1,
             )
             for price
-            in prices.data
+            in prices
+            if price.active
         ]
         return list_prices
 
     def _update_meta_ids(self,
-                         products: List[Product],
+                         products: list[Product],
                          ) -> dict[str, str]:
         ids = {str(product.id): str(product.id)
                for product
                in products}
         return ids
 
-    async def _create_session_payment(self):
+    async def _create_session_payment(self) -> Session:
         """
         Создание сессии
         """
-        prices: stripe.SearchResultObject = await self._items.get_list()
+        prices: StipeResult = await self._items.get_list()
         list_prices = self._get_list_prices(prices=prices)
         success_url = self._get_success_url()
-        ids = self._update_meta_ids(products=self._ids_products)
+        ids = self._update_meta_ids(products=self._products)
         logger.info(f'_create_session_payment success_url - \n{success_url}')
         return_url = self._get_cancel_url()
         params = dict(currency='rub',
@@ -354,7 +467,7 @@ class StripeSession:
         )
         return created_session
 
-    async def get_session_payments(self):
+    async def get_session_payments(self) -> Session:
         """
         Получение сессии для оплаты товаров
         """

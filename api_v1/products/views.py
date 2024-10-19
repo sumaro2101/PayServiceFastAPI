@@ -5,9 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config.models import db_helper
 
 from . import crud
-from .schemas import Product, ProductCreate, ProductUpdate
+from .schemas import (Product,
+                      ProductCreate,
+                      ProductUpdate,
+                      ActivityProductSchema,
+                      )
 from config.models.db_helper import db_helper
 from .dependencies import get_product_by_id
+from api_stripe.api import (CreateStripeItem,
+                            UpdateStripeItem,
+                            DeactivateStripeItem,
+                            ActivateStipeItem,
+                            )
 
 
 router = APIRouter(prefix='/products',
@@ -25,6 +34,7 @@ async def create_product_api_view(product: ProductCreate,
                                   ):
     return await crud.product_create(session=session,
                                      product=product,
+                                     stripe_action=CreateStripeItem,
                                      )
 
 
@@ -38,21 +48,36 @@ async def update_product_api_view(product_update: ProductUpdate,
                                   ) -> Product:
     return await crud.product_update(product=product,
                                      product_update=product_update,
-                                     session=session
+                                     session=session,
+                                     stripe_action=UpdateStripeItem,
                                      )
 
 
-@router.delete('/{product_id}/delete/',
-               name='Удаление продукта',
-               responses=None,
-               status_code=status.HTTP_204_NO_CONTENT,
+@router.patch('/{product_id}/activate/',
+              name='Активация продутка',
+              response_model=ActivityProductSchema,
+              )
+async def activate_product_api_view(product: Product = Depends(get_product_by_id),
+                                    session: AsyncSession = Depends(db_helper.session_geter),
+                                    ):
+    return await crud.product_activate(session=session,
+                                       product=product,
+                                       stripe_action=ActivateStipeItem,
+                                       )
+
+
+@router.patch('/{product_id}/deactivate/',
+               name='Деативация продукта',
+               response_model=ActivityProductSchema,
                )
-async def delete_product_api_view(
+async def deactivate_product_api_view(
     product: Product = Depends(get_product_by_id),
     session: AsyncSession = Depends(db_helper.session_geter),
-    ) -> None:
-    await crud.product_delete(product=product,
-                              session=session)
+    ):
+    return await crud.product_deactivate(product=product,
+                                         session=session,
+                                         stripe_action=DeactivateStripeItem,
+                                         )
 
 
 @router.get('/list/',

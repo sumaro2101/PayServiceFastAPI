@@ -44,9 +44,6 @@ class UserPathHasher:
         Convert a base 36 string to an int. Raise ValueError if the input won't fit
         into an int.
         """
-        # To prevent overconsumption of server resources, reject any
-        # base36 string that is longer than 13 base36 digits (13 digits
-        # is sufficient to base36-encode any 64-bit integer)
         if len(s) > 13:
             raise ValueError("Base36 input too large")
         return int(s, 36)
@@ -57,13 +54,6 @@ class UserPathHasher:
                      strings_only=False,
                      errors="strict",
                      ):
-        """
-        Similar to smart_bytes, except that lazy instances are resolved to
-        strings, rather than kept as lazy objects.
-
-        If strings_only is True, don't convert (some) non-string-like objects.
-        """
-        # Handle the common case first for performance reasons.
         if isinstance(s, bytes):
             if encoding == "utf-8":
                 return s
@@ -100,13 +90,7 @@ class UserPathHasher:
             raise InvalidAlgorithm(
                 "%r is not an algorithm accepted by the hashlib module." % algorithm
             ) from e
-        # We need to generate a derived key from our base key.  We can do this by
-        # passing the key_salt and our base key through a pseudo-random function.
         key = hasher(key_salt + secret).digest()
-        # If len(key_salt + secret) > block size of the hash algorithm, the above
-        # line is redundant and could be replaced by key = key_salt + secret, since
-        # the hmac module does the same thing for keys longer than the block size.
-        # However, we need to ensure that we *always* do this.
         return hmac.new(key, msg=self._force_bytes(value), digestmod=hasher)
 
     def _make_token_with_timestamp(self,
@@ -114,8 +98,6 @@ class UserPathHasher:
                                    timestamp,
                                    secret,
                                    ):
-        # timestamp is number of seconds since 2001-1-1. Converted to base 36,
-        # this gives us a 6 digit string until about 2069.
         ts_b36 = self.int_to_base36(timestamp)
         hash_string = self._salted_hmac(
             self.__key_salt,
@@ -145,8 +127,6 @@ class UserPathHasher:
         Running this data through salted_hmac() prevents password cracking
         attempts using the reset token, provided the secret isn't compromised.
         """
-        # Truncate microseconds so that tokens are consistent even if the
-        # database doesn't support microseconds.
         login_timestamp = user.create_date
         return f"{user.id}{user.password}{login_timestamp}{timestamp}{user.email}"
 

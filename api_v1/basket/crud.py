@@ -12,6 +12,10 @@ async def add_product_basket(basket: Basket,
                              session: AsyncSession,
                              ) -> dict:
     try:
+        if not product.is_active:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(product='This product is not active'),
+                                )
         basket.products.append(product)
         logger.info(basket.products)
         await session.commit()
