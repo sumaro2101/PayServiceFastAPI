@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy.orm import Mapped, relationship, mapped_column
 
 from typing import TYPE_CHECKING
 
@@ -15,7 +15,10 @@ class Basket(UserRelationMixin, Base):
     """
     _user_id_unique = True
     _user_back_populates = 'basket'
-    
+    unique_temporary_id: Mapped[str] = mapped_column(nullable=True,
+                                                     default=None,
+                                                     )
+
     products: Mapped[list['Product']] = relationship(
         secondary='basket_product_association',
         back_populates='baskets',

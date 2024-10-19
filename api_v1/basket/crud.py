@@ -2,9 +2,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
+from random import getrandbits
+
 from config.models import Basket, Product
 from loguru import logger
 from api_stripe.api import StripeSession
+from api_v1.auth.utils import int_to_base36
 
 
 async def add_product_basket(basket: Basket,
@@ -28,7 +31,9 @@ async def add_product_basket(basket: Basket,
                 )
 
 
-async def buy_products(basket: Basket):
+async def buy_products(basket: Basket,
+                       session: AsyncSession,
+                       ):
     user = basket.user
     products = basket.products
     if not products:
@@ -36,8 +41,14 @@ async def buy_products(basket: Basket):
                             detail=(
                                 dict(product='Для покупки нужен минимум один товар')),
                             )
+    unique_code = int_to_base36(getrandbits(41))
+    logger.info(f'unique_code = {unique_code}')
+    basket.unique_temporary_id = unique_code
+    await session.commit()
+    logger.info(f'unique code before = {basket.unique_temporary_id}')
     stripe = StripeSession(user=user,
                            products=products,
+                           unique_code=unique_code,
                            )
     session = await stripe.get_session_payments()
     return session

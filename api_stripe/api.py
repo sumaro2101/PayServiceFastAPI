@@ -404,12 +404,14 @@ class StripeSession:
     def __init__(self,
                  user: User,
                  products: List[Product],
+                 unique_code: str,
                  promo: Any = None
                  ) -> None:
         self.__user = user
         self._user_id = self.__user.id
         self._products = products
         self._items = StripeItems(products=self._products)
+        self._unique_code = unique_code
         self._promo = promo
         self.__url = r'http://localhost:8080/api/v1/payments/'
         stripe.api_key = self.__key
@@ -422,7 +424,7 @@ class StripeSession:
     def _get_success_url(self) -> str:
         path_hasher = UserPathHasher(user=self.__user)
         path = path_hasher.make_url_token()
-        url = self.__url + f'success/{path}'
+        url = self.__url + f'success/{path}/{self._unique_code}/'
         return url
 
     def _get_cancel_url(self) -> str:

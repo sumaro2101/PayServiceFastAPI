@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Select
+from sqlalchemy import Select, and_
 from sqlalchemy.orm import joinedload
 
 from fastapi import HTTPException, status
@@ -9,10 +9,12 @@ from config.models import User, Basket, Order
 
 
 async def get_basket(user: User,
+                     unique_code: str,
                      session: AsyncSession,
                      ) -> Basket:
     stmt = (Select(Basket)
-            .where(Basket.user_id == user.id)
+            .where(and_(Basket.user_id == user.id,
+                        Basket.unique_temporary_id == unique_code))
             .options(joinedload(Basket.products)))
     basket: Basket = await session.scalar(statement=stmt)
     return basket
@@ -39,17 +41,25 @@ async def switch_products_to_order(basket: Basket,
                                    ) -> Order:
     order.products.extend(basket.products)
     basket.products.clear()
+    basket.unique_temporary_id = None
     await session.commit()
     return order
 
 
 @logger.catch(reraise=True)
 async def success_payment(user: User,
+                          unique_code: str,
                           session: AsyncSession,
                           ) -> dict[str, str, Order]:
     basket = await get_basket(user=user,
+                              unique_code=unique_code,
                               session=session,
                               )
+    logger.info(f'get_basket = {basket}')
+    if not basket:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=dict(order='Permission Denied'),
+                            )
     if not basket.products:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=dict(basket='Basket is empty'),
@@ -62,6 +72,7 @@ async def success_payment(user: User,
         order=order,
         session=session,
     )
+    logger.info(f'unique code after = {basket.unique_temporary_id}')
     out = dict(state='success',
                detail='Your order is create',
                order=fill_order,

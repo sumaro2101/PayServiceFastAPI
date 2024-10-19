@@ -11,11 +11,13 @@ router = APIRouter(prefix='/payments',
                    )
 
 
-@router.get(path='/success/{uid}/{token}/')
-async def success_payment(user: User = Depends(get_user_by_hash),
+@router.get(path='/success/{uid}/{token}/{unique_code}/')
+async def success_payment(unique_code: str,
+                          user: User = Depends(get_user_by_hash),
                           session: AsyncSession = Depends(db_helper.session_geter),
                           ):
     return await crud.success_payment(user=user,
+                                      unique_code=unique_code,
                                       session=session,
                                       )
 
