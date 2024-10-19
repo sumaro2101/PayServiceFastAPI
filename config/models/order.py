@@ -6,6 +6,7 @@ from typing import Union, TYPE_CHECKING
 
 from .base import Base
 from .mixins import UserRelationMixin
+from .utils import ADD_NOW_TIME
 
 if TYPE_CHECKING:
     from .product import Product
@@ -17,9 +18,7 @@ class Order(UserRelationMixin, Base):
     _user_back_populates = 'orders'
 
     promocode: Mapped[Union[str, None]] = mapped_column(nullable=True)
-    create_date: Mapped[datetime] = mapped_column(insert_default=func.now(),
-                                                  server_default=func.now(),
-                                                  )
+    create_date: Mapped[datetime] = ADD_NOW_TIME()
     products: Mapped[list['Product']] = relationship(
         secondary='order_product_association',
         back_populates='orders',

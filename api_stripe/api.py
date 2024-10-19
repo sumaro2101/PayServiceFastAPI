@@ -15,7 +15,7 @@ from .exeptions import (NotFindInputError,
 from config.models import Product
 from api_v1.auth.hasher import UserPathHasher
 from .abs import Stripe
-from .types import (TargerItem,
+from .types import (TargetItem,
                     StripeType,
                     StipeResult,
                     SessionParams,
@@ -30,11 +30,11 @@ class CreateStripeItem(Stripe):
     """
     __key: str = settings.STRIPE.API_KEY
 
-    def __init__(self, target: TargerItem) -> None:
+    def __init__(self, target: TargetItem) -> None:
         self._target = target.copy()
         stripe.api_key = self.__key
 
-    def _correct_target(self, target: TargerItem) -> None:
+    def _correct_target(self, target: TargetItem) -> None:
         if not target:
             raise NotFindInputError('Не был указан объект для обработки')
         if not isinstance(target, dict):
@@ -47,7 +47,7 @@ class CreateStripeItem(Stripe):
         return
 
     async def _create_product(self,
-                              target: TargerItem,
+                              target: TargetItem,
                               ) -> stripe.Price:
         """
         Создание цены для продукта
@@ -85,11 +85,11 @@ class UpdateStripeItem(Stripe):
     """
     __key: str = settings.STRIPE.API_KEY
 
-    def __init__(self, target: TargerItem) -> None:
+    def __init__(self, target: TargetItem) -> None:
         self._target = target.copy()
         stripe.api_key = self.__key
 
-    def _correct_target(self, target: TargerItem) -> None:
+    def _correct_target(self, target: TargetItem) -> None:
         if not target:
             raise NotFindInputError('Не был указан объект для обработки')
         if not isinstance(target, dict):
@@ -143,7 +143,7 @@ class UpdateStripeItem(Stripe):
     
     async def _update_item(self,
                            id:int,
-                           target: TargerItem,
+                           target: TargetItem,
                            ) -> StripeType:
         updated_product = await stripe.Product.modify_async(
             id=str(id),
@@ -152,7 +152,7 @@ class UpdateStripeItem(Stripe):
         return updated_product
 
     async def _update_product(self,
-                              target: TargerItem,
+                              target: TargetItem,
                               ) -> StripeType:
         """
         Обновление продукта
@@ -193,11 +193,11 @@ class ActivateStipeItem(Stripe):
     Активирует объект и последнюю цену
     """
     __key: str = settings.STRIPE.API_KEY
-    def __init__(self, target: TargerItem) -> None:
+    def __init__(self, target: TargetItem) -> None:
         self._target = target.copy()
         stripe.api_key = self.__key
 
-    def _correct_target(self, target: TargerItem) -> None:
+    def _correct_target(self, target: TargetItem) -> None:
         if not target:
             raise NotFindInputError('Не был указан объект для обработки')
         if not isinstance(target, dict):
@@ -264,11 +264,11 @@ class DeactivateStripeItem(Stripe):
     """
     __key: str = settings.STRIPE.API_KEY
 
-    def __init__(self, target: TargerItem) -> None:
+    def __init__(self, target: TargetItem) -> None:
         self._target = target.copy()
         stripe.api_key = self.__key
 
-    def _correct_target(self, target: TargerItem) -> None:
+    def _correct_target(self, target: TargetItem) -> None:
         if not target:
             raise NotFindInputError('Не был указан объект для обработки')
         if not isinstance(target, dict):
@@ -311,7 +311,7 @@ class DeactivateStripeItem(Stripe):
         )
 
     async def _deactivate_product(self,
-                              target: TargerItem,
+                              target: TargetItem,
                               ) -> None:
         self._correct_target(target=target)
         price = await self._search_price(id=target['id'])
@@ -340,6 +340,18 @@ class DeactivateStripeItem(Stripe):
                                             product='Product has been deleted in server',
                                             ),
                                 )
+
+
+class CreateDiscountPromo(Stripe):
+    """
+    Создание промо кода для скидок
+    """
+    __key: str = settings.STRIPE.API_KEY
+
+    def __init__(self, target: TargetItem) -> None:
+        self._discount = target.copy()
+        stripe.api_key = self.__key
+        
 
 
 class StripeItems:
