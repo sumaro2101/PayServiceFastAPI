@@ -1,4 +1,3 @@
-from typing import Any
 import stripe
 
 from loguru import logger
@@ -6,7 +5,7 @@ from loguru import logger
 from config.config import settings
 from config.models import Product, User
 from api_stripe.api import StripeItems
-from api_stripe.types import StipeResult, SessionParams, Session
+from api_stripe.types import StipeResult, SessionParams, Session, StripeType
 from api_v1.auth.hasher import UserPathHasher
 
 
@@ -20,7 +19,7 @@ class StripeSession:
                  user: User,
                  products: list[Product],
                  unique_code: str,
-                 promo: Any = None
+                 promo: int | None = None
                  ) -> None:
         self.__user = user
         self._user_id = self.__user.id
@@ -30,11 +29,13 @@ class StripeSession:
         self._promo = promo
         self.__url = r'http://localhost:8080/api/v1/payments/'
         stripe.api_key = self.__key
-
+        
     def _get_discount_promo(self,
-                            promo: Any,
-                            ) -> stripe.checkout.Session.CreateParamsDiscount:
-        pass
+                            promo: int,
+                            ) -> list[stripe.checkout.Session.CreateParamsDiscount]:
+        return list(stripe.checkout.Session.CreateParamsDiscount(
+            coupon=str(promo),
+        ))
 
     def _get_success_url(self) -> str:
         path_hasher = UserPathHasher(user=self.__user)
@@ -68,6 +69,7 @@ class StripeSession:
                in products}
         return ids
 
+    @logger.catch(reraise=True)
     async def _create_session_payment(self) -> Session:
         """
         Создание сессии
@@ -88,9 +90,8 @@ class StripeSession:
                       )
         logger.info(f'_create_session_payment params - \n{params}')
         if self._promo:
-            promo = self._get_discount_promo()
+            promo = self._get_discount_promo(promo=self._promo)
             params.update(discounts=promo)
-            params['metadata'].update(promo=promo.coupon)
         created_session = await stripe.checkout.Session.create_async(
             **params
         )

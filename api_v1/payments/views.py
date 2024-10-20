@@ -7,7 +7,7 @@ from . import crud
 
 
 router = APIRouter(prefix='/payments',
-                   tags=['payment'],
+                   tags=['Payments'],
                    )
 
 

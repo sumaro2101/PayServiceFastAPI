@@ -11,7 +11,7 @@ from . import crud
 from config.models import User, Post, db_helper
 
 
-router = APIRouter(tags=['posts'],
+router = APIRouter(tags=['Posts'],
                    prefix='/posts',
                    )
 

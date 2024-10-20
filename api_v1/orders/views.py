@@ -9,7 +9,7 @@ from .dependencies import get_order_by_id
 
 
 router = APIRouter(prefix='/orders',
-                   tags=['orders'],
+                   tags=['Orders'],
                    )
 
 

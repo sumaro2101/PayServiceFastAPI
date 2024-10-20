@@ -6,10 +6,11 @@ from . import crud
 from .dependencies import get_or_create_basket
 from api_v1.products.dependencies import get_product_by_id
 from config.models import db_helper, Basket, Product
+from .schemas import CouponeNameSchema
 
 
 router = APIRouter(prefix='/basket',
-                   tags=['basket'])
+                   tags=['Basket'])
 
 
 @router.get(path='/get/')
@@ -17,11 +18,13 @@ async def get_basket(basket: Basket = Depends(get_or_create_basket)):
     return basket
 
 
-@router.get(path='/buy/')
-async def buy_products(basket: Basket = Depends(get_or_create_basket),
+@router.put(path='/buy/')
+async def buy_products(coupone: CouponeNameSchema,
+                       basket: Basket = Depends(get_or_create_basket),
                        session: AsyncSession = Depends(db_helper.session_geter),
                        ):
-    answer = await crud.buy_products(basket=basket,
+    answer = await crud.buy_products(coupone=coupone,
+                                     basket=basket,
                                      session=session,
                                      )
     return dict(state='success',

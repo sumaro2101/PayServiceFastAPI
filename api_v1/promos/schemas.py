@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -23,10 +23,10 @@ class BaseCouponSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     discount: float = Field(gt=-1)
-    nubmer: str
+    number: str
     description: str
     active: bool = Field(default=True)
-    end_at: datetime = Field(gt=datetime.now())
+    end_at: datetime
 
 
 class CouponSchemaCreate(BaseCouponSchema):
@@ -44,11 +44,7 @@ class CouponSchemaUpdate(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    discount: float | None = Field(gt=-1, default=None)
-    nubmer: str | None = Field(default=None)
-    description: str | None = Field(default=None)
-    active: bool | None = Field(default=None)
-    end_at: datetime | None = Field(default=None, gt=datetime.now())
+    number: str | None = Field(default=None)
 
 
 class CouponSchema(BaseCouponSchema):
@@ -66,6 +62,13 @@ class CouponViewSchema(CouponSchema):
     """
 
     users: list[UserAssociationSchema]
+
+
+class CouponAddCountUser(CouponSchema):
+    """
+    Схема добавления купона всем пользователям
+    """
+    users_count: int
 
 
 class ActivityCouponeSchema(BaseCouponSchema):

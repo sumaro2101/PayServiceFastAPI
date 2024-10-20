@@ -16,8 +16,8 @@ async def get_user_by_id(user_id: Annotated[int,
     """ Получение пользователя по ID
     """
     user = await crud.get_user(session=session,
-                                  user_id=user_id,
-                                  )
+                                user_id=user_id,
+                                )
     if user:
         return user
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

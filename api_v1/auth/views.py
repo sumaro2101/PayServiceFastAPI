@@ -8,7 +8,7 @@ from .tokens import Token
 
 
 router = APIRouter(prefix='/auth',
-                   tags=['AUTH'])
+                   tags=['Auth'])
 
 
 @router.post('/login/',

@@ -8,6 +8,8 @@ from config.models import Basket, Product
 from loguru import logger
 from api_stripe.api import StripeSession
 from api_v1.auth.utils import int_to_base36
+from api_v1.promos.dependencies import get_coupon_by_name
+from .schemas import CouponeNameSchema
 
 
 async def add_product_basket(basket: Basket,
@@ -31,9 +33,16 @@ async def add_product_basket(basket: Basket,
                 )
 
 
-async def buy_products(basket: Basket,
+async def buy_products(coupone: CouponeNameSchema | None,
+                       basket: Basket,
                        session: AsyncSession,
                        ):
+    if coupone:
+        coupone_obj = await get_coupon_by_name(
+            coupon_name=coupone.number,
+            session=session,
+        )
+        coupone = coupone_obj.id
     user = basket.user
     products = basket.products
     if not products:
@@ -49,6 +58,7 @@ async def buy_products(basket: Basket,
     stripe = StripeSession(user=user,
                            products=products,
                            unique_code=unique_code,
+                           promo=coupone,
                            )
     session = await stripe.get_session_payments()
     return session
