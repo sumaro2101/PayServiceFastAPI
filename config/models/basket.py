@@ -15,7 +15,7 @@ class Basket(UserRelationMixin, Base):
     """
     _user_id_unique = True
     _user_back_populates = 'basket'
-    unique_temporary_id: Mapped[str] = mapped_column(nullable=True,
+    unique_temporary_id: Mapped[str | None] = mapped_column(nullable=True,
                                                      default=None,
                                                      )
 

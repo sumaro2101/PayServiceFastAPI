@@ -51,6 +51,10 @@ async def success_payment(user: User,
                           unique_code: str,
                           session: AsyncSession,
                           ) -> dict[str, str, Order]:
+    if not unique_code:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                    detail=dict(order='Permission Denied'),
+                    )
     basket = await get_basket(user=user,
                               unique_code=unique_code,
                               session=session,
@@ -78,3 +82,27 @@ async def success_payment(user: User,
                order=fill_order,
                )
     return out
+
+
+async def cancel_payment(user: User,
+                         unique_code: str,
+                         session: AsyncSession,
+                         ) -> dict[str, str]:
+    if not unique_code:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                    detail=dict(order='Permission Denied'),
+                    )
+    basket = await get_basket(user=user,
+                              unique_code=unique_code,
+                              session=session,
+                              )
+    if not basket:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=dict(order='Permission Denied'),
+                            )
+
+    basket.unique_temporary_id = None
+    await session.commit()
+    return dict(state='success',
+                detail='Order is cancel',
+                )

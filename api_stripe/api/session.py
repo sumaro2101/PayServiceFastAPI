@@ -28,8 +28,14 @@ class StripeSession:
         self._unique_code = unique_code
         self._promo = promo
         self.__url = r'http://localhost:8080/api/v1/payments/'
+        self.__path = None
         stripe.api_key = self.__key
-        
+
+    def _set_hash_user_path(self):
+        path_hasher = UserPathHasher(user=self.__user)
+        self.__path = path_hasher.make_url_token()
+        return self.__path
+
     def _get_discount_promo(self,
                             promo: int,
                             ) -> list[stripe.checkout.Session.CreateParamsDiscount]:
@@ -38,13 +44,11 @@ class StripeSession:
         ))
 
     def _get_success_url(self) -> str:
-        path_hasher = UserPathHasher(user=self.__user)
-        path = path_hasher.make_url_token()
-        url = self.__url + f'success/{path}/{self._unique_code}/'
+        url = self.__url + f'success/{self.__path}/{self._unique_code}/'
         return url
 
     def _get_cancel_url(self) -> str:
-        url = self.__url + f'cancel/'
+        url = self.__url + f'cancel/{self.__path}/{self._unique_code}/'
         return url
 
     def _get_list_prices(self,
@@ -76,10 +80,11 @@ class StripeSession:
         """
         prices: StipeResult = await self._items.get_list()
         list_prices = self._get_list_prices(prices=prices)
+        self._set_hash_user_path()
         success_url = self._get_success_url()
-        ids = self._update_meta_ids(products=self._products)
-        logger.info(f'_create_session_payment success_url - \n{success_url}')
         return_url = self._get_cancel_url()
+        ids = self._update_meta_ids(products=self._products)
+        logger.debug(f'_create_session_payment success_url - \n{success_url}')
         params = dict(currency='rub',
                       line_items=list_prices,
                       mode='payment',

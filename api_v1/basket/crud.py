@@ -17,6 +17,15 @@ async def add_product_basket(basket: Basket,
                              session: AsyncSession,
                              ) -> dict:
     try:
+        if basket.unique_temporary_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(
+                                    basket='В данный момент корзина '
+                                    'имеет фиксированное состояние '
+                                    'изза ожидающего платежа. '
+                                    'Если вы хотите добавить товар, '
+                                    'неоходимо отменить платеж.',
+                                    ))
         if not product.is_active:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=dict(product='This product is not active'),
@@ -37,9 +46,10 @@ async def buy_products(coupone: CouponeNameSchema | None,
                        basket: Basket,
                        session: AsyncSession,
                        ):
+    coupone = coupone.model_dump(exclude_none=True)
     if coupone:
         coupone_obj = await get_coupon_by_name(
-            coupon_name=coupone.number,
+            coupon_name=coupone['number'],
             session=session,
         )
         coupone = coupone_obj.id
@@ -69,6 +79,15 @@ async def delete_product_basket(basket: Basket,
                                 session: AsyncSession,
                                 ) -> dict:
     try:
+        if basket.unique_temporary_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(
+                                    basket='В данный момент корзина '
+                                    'имеет фиксированное состояние '
+                                    'изза ожидающего платежа. '
+                                    'Если вы хотите добавить товар, '
+                                    'неоходимо отменить платеж.',
+                                    ))
         basket.products.remove(product)
         await session.commit()
     except ValueError:
@@ -83,6 +102,15 @@ async def delete_product_basket(basket: Basket,
 async def delete_all_products(basket: Basket,
                               session: AsyncSession,
                               ) -> dict:
+    if basket.unique_temporary_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(
+                                    basket='В данный момент корзина '
+                                    'имеет фиксированное состояние '
+                                    'изза ожидающего платежа. '
+                                    'Если вы хотите добавить товар, '
+                                    'неоходимо отменить платеж.',
+                                    ))
     basket.products.clear()
     await session.commit()
     return dict(state='success',

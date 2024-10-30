@@ -66,7 +66,7 @@ stripe = StripeItems(
     products=list_items,
     add_key=True,
 )
-# add_key неоходим в случае ручного использования,
+# add_key необходим в случае ручного использования,
 # для того что бы система автоматически добавила API_KEY
 # к запросу Stripe
 ```

@@ -22,6 +22,13 @@ async def success_payment(unique_code: str,
                                       )
 
 
-@router.get(path='/cancel/')
-async def get_cancel():
-    return dict(payment='payment has cancel')
+@router.get(path='/cancel/{uid}/{token}/{unique_code}/')
+async def get_cancel(unique_code: str,
+                     user: User = Depends(get_user_by_hash),
+                     session: AsyncSession = Depends(db_helper.session_geter),
+                     ):
+    return await crud.cancel_payment(
+        user=user,
+        unique_code=unique_code,
+        session=session,
+    )
