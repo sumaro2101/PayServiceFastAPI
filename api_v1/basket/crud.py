@@ -6,7 +6,7 @@ from random import getrandbits
 
 from config.models import Basket, Product
 from loguru import logger
-from api_stripe.api import StripeSession
+from api_stripe.api import StripeSession, ExpireSession
 from api_v1.auth.utils import int_to_base36
 from api_v1.promos.dependencies import get_coupon_by_name
 from .schemas import CouponeNameSchema
@@ -62,16 +62,19 @@ async def buy_products(coupone: CouponeNameSchema | None,
                             )
     unique_code = int_to_base36(getrandbits(41))
     logger.info(f'unique_code = {unique_code}')
-    basket.unique_temporary_id = unique_code
-    await session.commit()
     logger.info(f'unique code before = {basket.unique_temporary_id}')
     stripe = StripeSession(user=user,
                            products=products,
                            unique_code=unique_code,
                            promo=coupone,
                            )
-    session = await stripe.get_session_payments()
-    return session
+    stripe_session = await stripe.get_session_payments()
+    if basket.session_id:
+        ExpireSession(session_id=basket.session_id).expire_session()
+    basket.unique_temporary_id = unique_code
+    basket.session_id = stripe_session.id
+    await session.commit()
+    return stripe_session
 
 
 async def delete_product_basket(basket: Basket,

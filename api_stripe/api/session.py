@@ -83,13 +83,14 @@ class StripeSession:
         self._set_hash_user_path()
         success_url = self._get_success_url()
         return_url = self._get_cancel_url()
-        ids = self._update_meta_ids(products=self._products)
         logger.debug(f'_create_session_payment success_url - \n{success_url}')
         params = dict(currency='rub',
                       line_items=list_prices,
                       mode='payment',
                       submit_type='pay',
-                      metadata=dict(user_id=str(self._user_id)) | ids,
+                      metadata=dict(user_id=str(self._user_id),
+                                    id=self._unique_code,
+                                    ),
                       success_url=success_url,
                       cancel_url=return_url,
                       )
@@ -108,3 +109,29 @@ class StripeSession:
         """
         session = await self._create_session_payment()
         return session
+
+
+class ExpireSession:
+    """
+    Класс отмены сессии платежа
+    """
+    __key: str = settings.STRIPE.API_KEY
+
+    def __init__(self,
+                 session_id: int,
+                 ) -> None:
+        self._session_id = session_id
+        stripe.api_key = self.__key
+
+    async def _expire_session(self,
+                              session_id: int,
+                              ) -> None:
+        stripe.checkout.Session.expire_async(
+            session=session_id,
+        )
+
+    async def expire_session(self) -> None:
+        """
+        Отмена сессии
+        """
+        await self._expire_session()

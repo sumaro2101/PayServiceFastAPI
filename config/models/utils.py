@@ -14,3 +14,8 @@ EMPTY_TEXT_DEFAULT = partial(mapped_column,
                              default='',
                              server_default='',
                              )
+
+NULL_FIELD_INSTANCE = partial(mapped_column,
+                              nullable=True,
+                              default=None,
+                              )

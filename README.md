@@ -15,6 +15,7 @@
 - UpdateDiscountCoupon # Обновление скидочного купона
 - DeleteDiscountCoupon # Удаление скидочного купона
 - StripeSession # Создание Stripe Сессии для оплаты
+- ExpireSession # Отмена Stripe Cессии
 
 Создание Stripe объекта
 ```python
@@ -124,6 +125,14 @@ session.get_session_payments()
 # При совершении покупки и создании заказа этот код удаляется из текущей корзины,
 # по этому создать дополнительные заказы просто посредством перехода на ту же ссылку
 # не возможно.
+```
+
+Отмена Stripe Сессии
+```python
+basket = <Basket1>
+ExpireSession(
+    session_id=basket.session_id,
+).expire_session()
 ```
 
 # Dependencies

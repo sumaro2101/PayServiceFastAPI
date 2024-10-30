@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 
 from loguru import logger
 from config.models import User, Basket, Order
+from api_stripe.api import ExpireSession
 
 
 async def get_basket(user: User,
@@ -42,6 +43,7 @@ async def switch_products_to_order(basket: Basket,
     order.products.extend(basket.products)
     basket.products.clear()
     basket.unique_temporary_id = None
+    basket.session_id = None
     await session.commit()
     return order
 
@@ -100,8 +102,9 @@ async def cancel_payment(user: User,
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=dict(order='Permission Denied'),
                             )
-
+    ExpireSession(session_id=basket.session_id).expire_session()
     basket.unique_temporary_id = None
+    basket.session_id = None
     await session.commit()
     return dict(state='success',
                 detail='Order is cancel',

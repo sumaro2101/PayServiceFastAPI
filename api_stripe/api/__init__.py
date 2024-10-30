@@ -5,6 +5,7 @@ __all__ = (
     'DeactivateStripeItem',
     'ActivateStipeItem',
     'StripeSession',
+    'ExpireSession',
     'CreateDiscountCoupon',
     'UpdateDiscountCoupon',
     'DeleteDiscountCoupon',
@@ -17,7 +18,7 @@ from .product import (CreateStripeItem,
                       DeactivateStripeItem,
                       ActivateStipeItem,
                       )
-from .session import StripeSession
+from .session import StripeSession, ExpireSession
 from .coupon import (CreateDiscountCoupon,
                      UpdateDiscountCoupon,
                      DeleteDiscountCoupon,
