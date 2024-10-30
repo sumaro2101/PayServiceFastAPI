@@ -70,7 +70,7 @@ async def buy_products(coupone: CouponeNameSchema | None,
                            )
     stripe_session = await stripe.get_session_payments()
     if basket.session_id:
-        ExpireSession(session_id=basket.session_id).expire_session()
+        await ExpireSession(session_id=basket.session_id).expire_session()
     basket.unique_temporary_id = unique_code
     basket.session_id = stripe_session.id
     await session.commit()

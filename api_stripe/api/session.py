@@ -91,6 +91,7 @@ class StripeSession:
                       metadata=dict(user_id=str(self._user_id),
                                     id=self._unique_code,
                                     ),
+                      payment_method_types=['card'],
                       success_url=success_url,
                       cancel_url=return_url,
                       )
@@ -129,9 +130,10 @@ class ExpireSession:
         stripe.checkout.Session.expire_async(
             session=session_id,
         )
+        logger.info(f'checkout is been deleted {session_id}')
 
     async def expire_session(self) -> None:
         """
         Отмена сессии
         """
-        await self._expire_session()
+        await self._expire_session(self._session_id)

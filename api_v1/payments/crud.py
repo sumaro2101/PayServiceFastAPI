@@ -102,7 +102,7 @@ async def cancel_payment(user: User,
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=dict(order='Permission Denied'),
                             )
-    ExpireSession(session_id=basket.session_id).expire_session()
+    await ExpireSession(session_id=basket.session_id).expire_session()
     basket.unique_temporary_id = None
     basket.session_id = None
     await session.commit()
