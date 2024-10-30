@@ -181,6 +181,7 @@ class ActivateStipeItem(Stripe):
     Активирует объект и последнюю цену
     """
     __key: str = settings.STRIPE.API_KEY
+
     def __init__(self, target: TargetItem) -> None:
         self._target = target.copy()
         stripe.api_key = self.__key

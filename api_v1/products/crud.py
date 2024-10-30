@@ -64,8 +64,8 @@ async def product_update(session: AsyncSession,
     logger.info(f'update_params = {product_update.model_dump(exclude_none=True)}')
     if product_update.model_dump(exclude_none=True):
         stripe_update = add_params(updated_params,
-                                id=product.id,
-                                )
+                                   id=product.id,
+                                   )
         stripe = stripe_action(stripe_update)
         await stripe.action()
     return product
