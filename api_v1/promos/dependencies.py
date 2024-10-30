@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status, Depends
 
 from config.models import Coupon, db_helper
+from config.models.user import User
 
 
 async def get_coupon_by_name(coupon_name: str,

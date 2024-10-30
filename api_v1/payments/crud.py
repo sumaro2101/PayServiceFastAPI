@@ -22,9 +22,11 @@ async def get_basket(user: User,
 
 
 async def create_order(user: User,
+                       basket: Basket,
                        session: AsyncSession,
                        ) -> Order:
-    order_values = dict(user_id=user.id)
+    order_values = dict(user_id=user.id,
+                        coupon_id=basket.coupon_id)
     order_model = Order(**order_values)
     session.add(order_model)
     await session.commit()
@@ -44,6 +46,7 @@ async def switch_products_to_order(basket: Basket,
     basket.products.clear()
     basket.unique_temporary_id = None
     basket.session_id = None
+    basket.coupon_id = None
     await session.commit()
     return order
 
@@ -71,6 +74,7 @@ async def success_payment(user: User,
                             detail=dict(basket='Basket is empty'),
                             )
     order = await create_order(user=user,
+                               basket=basket,
                                session=session,
                                )
     fill_order = await switch_products_to_order(

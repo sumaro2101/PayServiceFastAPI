@@ -4,11 +4,15 @@ from fastapi import HTTPException, status
 
 from random import getrandbits
 
+from stripe import _error
+
 from config.models import Basket, Product
 from loguru import logger
 from api_stripe.api import StripeSession, ExpireSession
+from api_stripe.handler import error_stripe_handle
 from api_v1.auth.utils import int_to_base36
 from api_v1.promos.dependencies import get_coupon_by_name
+from api_v1.orders.dependencies import get_order_by_user_and_coupone
 from .schemas import CouponeNameSchema
 
 
@@ -48,11 +52,22 @@ async def buy_products(coupone: CouponeNameSchema | None,
                        ):
     coupone = coupone.model_dump(exclude_none=True)
     if coupone:
+        name = coupone['number']
+        user = basket.user
         coupone_obj = await get_coupon_by_name(
-            coupon_name=coupone['number'],
+            coupon_name=name,
             session=session,
         )
+        promo_in_orders = await get_order_by_user_and_coupone(
+            user_id=user.id,
+            coupon_id=coupone_obj.id,
+            session=session,
+        )
+        if promo_in_orders:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(coupone='This coupon is already used'))
         coupone = coupone_obj.id
+        basket.coupon_id = coupone
     user = basket.user
     products = basket.products
     if not products:
@@ -61,14 +76,17 @@ async def buy_products(coupone: CouponeNameSchema | None,
                                 dict(product='Для покупки нужен минимум один товар')),
                             )
     unique_code = int_to_base36(getrandbits(41))
-    logger.info(f'unique_code = {unique_code}')
-    logger.info(f'unique code before = {basket.unique_temporary_id}')
     stripe = StripeSession(user=user,
                            products=products,
                            unique_code=unique_code,
                            promo=coupone,
                            )
-    stripe_session = await stripe.get_session_payments()
+    try:
+        stripe_session = await stripe.get_session_payments()
+    except _error.InvalidRequestError as ex:
+        message = error_stripe_handle(ex)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=dict(payment=message))
     if basket.session_id:
         await ExpireSession(session_id=basket.session_id).expire_session()
     basket.unique_temporary_id = unique_code

@@ -9,6 +9,7 @@ from .utils import ADD_NOW_TIME, EMPTY_TEXT_DEFAULT
 if TYPE_CHECKING:
     from config.models import User
     from .order import Order
+    from config.models import Basket
 
 
 class Coupon(Base):
@@ -27,5 +28,8 @@ class Coupon(Base):
         secondary='coupon_user_association',
         )
     orders: Mapped[list['Order']] = relationship(
+        back_populates='coupon',
+    )
+    baskets: Mapped[list['Basket']] = relationship(
         back_populates='coupon',
     )

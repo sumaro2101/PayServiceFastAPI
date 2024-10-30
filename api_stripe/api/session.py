@@ -39,9 +39,9 @@ class StripeSession:
     def _get_discount_promo(self,
                             promo: int,
                             ) -> list[stripe.checkout.Session.CreateParamsDiscount]:
-        return list(stripe.checkout.Session.CreateParamsDiscount(
+        return [stripe.checkout.Session.CreateParamsDiscount(
             coupon=str(promo),
-        ))
+        ),]
 
     def _get_success_url(self) -> str:
         url = self.__url + f'success/{self.__path}/{self._unique_code}/'
@@ -97,7 +97,9 @@ class StripeSession:
                       )
         logger.info(f'_create_session_payment params - \n{params}')
         if self._promo:
+            logger.debug(f'get promo {self._promo}')
             promo = self._get_discount_promo(promo=self._promo)
+            logger.debug(f'ready to send promo {promo}')
             params.update(discounts=promo)
         created_session = await stripe.checkout.Session.create_async(
             **params
