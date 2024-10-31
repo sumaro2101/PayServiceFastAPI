@@ -23,12 +23,14 @@ async def buy_products(coupone: CouponeNameSchema,
                        basket: Basket = Depends(get_or_create_basket),
                        session: AsyncSession = Depends(db_helper.session_geter),
                        ):
-    answer = await crud.buy_products(coupone=coupone,
-                                     basket=basket,
-                                     session=session,
-                                     )
+    payment = crud.Payment(
+        coupon=coupone,
+        basket=basket,
+        session=session,
+    )
+    payment_session = await payment.get_session()
     return dict(state='success',
-                url_payment=answer.url,
+                url_payment=payment_session.url,
                 )
 
 

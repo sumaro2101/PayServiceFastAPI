@@ -64,14 +64,9 @@ async def success_payment(user: User,
                               unique_code=unique_code,
                               session=session,
                               )
-    logger.info(f'get_basket = {basket}')
     if not basket:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=dict(order='Permission Denied'),
-                            )
-    if not basket.products:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(basket='Basket is empty'),
                             )
     order = await create_order(user=user,
                                basket=basket,
@@ -82,7 +77,6 @@ async def success_payment(user: User,
         order=order,
         session=session,
     )
-    logger.info(f'unique code after = {basket.unique_temporary_id}')
     out = dict(state='success',
                detail='Your order is create',
                order=fill_order,
