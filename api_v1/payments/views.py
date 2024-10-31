@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.models import User, db_helper
@@ -16,19 +16,25 @@ async def success_payment(unique_code: str,
                           user: User = Depends(get_user_by_hash),
                           session: AsyncSession = Depends(db_helper.session_geter),
                           ):
-    return await crud.success_payment(user=user,
-                                      unique_code=unique_code,
-                                      session=session,
-                                      )
+    session_payment = crud.PaymentManager(
+        user=user,
+        unique_code=unique_code,
+        session=session
+    )
+    order = await session_payment.get_order()
+    return order
 
 
-@router.get(path='/cancel/{uid}/{token}/{unique_code}/')
+@router.get(path='/cancel/{uid}/{token}/{unique_code}/',
+            status_code=status.HTTP_204_NO_CONTENT,
+            )
 async def get_cancel(unique_code: str,
                      user: User = Depends(get_user_by_hash),
                      session: AsyncSession = Depends(db_helper.session_geter),
                      ):
-    return await crud.cancel_payment(
+    session_payment = crud.PaymentManager(
         user=user,
         unique_code=unique_code,
-        session=session,
+        session=session
     )
+    await session_payment.cancel_payment()

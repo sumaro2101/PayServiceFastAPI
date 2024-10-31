@@ -7,103 +7,181 @@ from fastapi import HTTPException, status
 from loguru import logger
 from config.models import User, Basket, Order
 from api_stripe.api import ExpireSession
+from config.models.product import Product
 
 
-async def get_basket(user: User,
-                     unique_code: str,
-                     session: AsyncSession,
-                     ) -> Basket:
-    stmt = (Select(Basket)
-            .where(and_(Basket.user_id == user.id,
-                        Basket.unique_temporary_id == unique_code))
-            .options(joinedload(Basket.products)))
-    basket: Basket = await session.scalar(statement=stmt)
-    return basket
+class PaymentManager:
+    """
+    Менеджер для делигирования поступающих
+    сведений о платежах
+    """
 
+    def __init__(self,
+                 user: User,
+                 unique_code: str,
+                 session: AsyncSession,
+                 ) -> None:
+        self.user = user
+        self.unique_code = unique_code
+        self._session = session
 
-async def create_order(user: User,
-                       basket: Basket,
-                       session: AsyncSession,
-                       ) -> Order:
-    order_values = dict(user_id=user.id,
-                        coupon_id=basket.coupon_id)
-    order_model = Order(**order_values)
-    session.add(order_model)
-    await session.commit()
-    await session.refresh(order_model)
-    stmt = (Select(Order)
-            .where(Order.id == order_model.id)
-            .options(joinedload(Order.products)))
-    order: Order = await session.scalar(statement=stmt)
-    return order
+    @classmethod
+    def check_unique_code(cls,
+                          unique_code: str,
+                          ) -> None:
+        if not unique_code:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                        detail=dict(order='Permission Denied'),
+                        )
 
+    def _check_basket(self,
+                      basket: Basket,
+                      ) -> None:
+        if not basket:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail=dict(order='Permission Denied'),
+                                )
 
-async def switch_products_to_order(basket: Basket,
-                                   order: Order,
-                                   session: AsyncSession,
-                                   ) -> Order:
-    order.products.extend(basket.products)
-    basket.products.clear()
-    basket.unique_temporary_id = None
-    basket.session_id = None
-    basket.coupon_id = None
-    await session.commit()
-    return order
+    async def _reset_basket_state(self,
+                                  basket: Basket,
+                                  session: AsyncSession,
+                                  with_cancel: bool = False,
+                                  ) -> Basket:
+        if not with_cancel:
+            basket.products.clear()
+            basket.coupon_id = None
+        basket.unique_temporary_id = None
+        basket.session_id = None
+        await session.commit()
+        return basket
+    
+    async def _expire_session(self,
+                              session_id: str,
+                              ) -> None:
+        await ExpireSession(session_id=session_id).expire_session()
 
-
-@logger.catch(reraise=True)
-async def success_payment(user: User,
+    async def _get_basket(self,
+                          user_id: int,
                           unique_code: str,
                           session: AsyncSession,
-                          ) -> dict[str, str, Order]:
-    if not unique_code:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                    detail=dict(order='Permission Denied'),
-                    )
-    basket = await get_basket(user=user,
-                              unique_code=unique_code,
-                              session=session,
-                              )
-    if not basket:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=dict(order='Permission Denied'),
-                            )
-    order = await create_order(user=user,
-                               basket=basket,
-                               session=session,
-                               )
-    fill_order = await switch_products_to_order(
-        basket=basket,
-        order=order,
-        session=session,
-    )
-    out = dict(state='success',
-               detail='Your order is create',
-               order=fill_order,
-               )
-    return out
+                          ) -> Basket | None:
+        stmt = (Select(Basket)
+            .where(and_(Basket.user_id == user_id,
+                        Basket.unique_temporary_id == unique_code))
+            .options(joinedload(Basket.products)))
+        basket: Basket = await session.scalar(statement=stmt)
+        self._check_basket(basket=basket)
+        return basket
 
-
-async def cancel_payment(user: User,
-                         unique_code: str,
+    async def _get_order(self,
+                         order_id: int,
                          session: AsyncSession,
-                         ) -> dict[str, str]:
-    if not unique_code:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                    detail=dict(order='Permission Denied'),
-                    )
-    basket = await get_basket(user=user,
-                              unique_code=unique_code,
-                              session=session,
-                              )
-    if not basket:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=dict(order='Permission Denied'),
-                            )
-    await ExpireSession(session_id=basket.session_id).expire_session()
-    basket.unique_temporary_id = None
-    basket.session_id = None
-    await session.commit()
-    return dict(state='success',
-                detail='Order is cancel',
-                )
+                         ) -> Order:
+        stmt = (Select(Order)
+                .where(Order.id == order_id)
+                .options(joinedload(Order.products)))
+        order: Order = await session.scalar(statement=stmt)
+        return order
+
+    async def _create_order(self,
+                            user_id: int,
+                            coupon_id: int,
+                            session: AsyncSession,
+                            ) -> Order:
+        order_values = dict(user_id=user_id,
+                        coupon_id=coupon_id)
+        order_model = Order(**order_values)
+        session.add(order_model)
+        await session.commit()
+        await session.refresh(order_model)
+        order = await self._get_order(
+            order_id=order_model.id,
+            session=session,
+        )
+        return order
+
+    async def _switch_products_to_order(self,
+                                        basket: Basket,
+                                        order: Order,
+                                        session: AsyncSession,
+                                        ) -> Order:
+        order.products.extend(basket.products)
+        await self._reset_basket_state(
+            basket=basket,
+            session=session,
+        )
+        return order
+
+    async def _get_fill_order(self,
+                              user: User,
+                              unique_code: str,
+                              session: AsyncSession,
+                              ) -> Order:
+        user_id = user.id
+        self.check_unique_code(
+            unique_code=unique_code,
+        )
+        basket = await self._get_basket(
+            user_id=user_id,
+            unique_code=unique_code,
+            session=session,
+        )
+        coupon_id = basket.coupon_id
+        order = await self._create_order(
+            user_id=user_id,
+            coupon_id=coupon_id,
+            session=session,
+        )
+        fill_order = await self._switch_products_to_order(
+            basket=basket,
+            order=order,
+            session=session,
+        )
+        return fill_order
+
+    async def _cancel_payment(self,
+                              user: User,
+                              unique_code: str,
+                              session: AsyncSession,
+                              ) -> None:
+        user_id = user.id
+        self.check_unique_code(
+            unique_code=unique_code,
+        )
+        basket = await self._get_basket(
+            user_id=user_id,
+            unique_code=unique_code,
+            session=session,
+        )
+        session_id = basket.session_id
+        await self._expire_session(
+            session_id=session_id,
+        )
+        await self._reset_basket_state(
+            basket=basket,
+            session=session,
+            with_cancel=True,
+        )
+        return
+
+    async def get_order(self):
+        """
+        Получение созданного заказа
+        """
+        order = await self._get_fill_order(
+            user=self.user,
+            unique_code=self.unique_code,
+            session=self._session,
+        )
+        return order
+
+    async def cancel_payment(self):
+        """
+        Отмена текущего платежа
+        """
+        await self._cancel_payment(
+            user=self.user,
+            unique_code=self.unique_code,
+            session=self._session,
+        )
+        return
