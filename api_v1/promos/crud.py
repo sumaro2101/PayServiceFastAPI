@@ -6,11 +6,14 @@ from fastapi import status, HTTPException
 
 from loguru import logger
 
+from stripe import _error
+
 from api_stripe.abs import Stripe
 from config.models.user import User
 
 from .schemas import CouponSchemaCreate, CouponSchemaUpdate
 from config.models import Coupon
+from api_stripe.handler import error_stripe_handle
 from api_v1.users.crud import get_active_list_users, get_list_users
 
 
@@ -32,8 +35,15 @@ async def create_coupon(coupon_schema: CouponSchemaCreate,
     session.add(coupon)
     await session.commit()
     await session.refresh(coupon)
-    stripe = stripe_action(target=coupon.__dict__)
-    await stripe.action()
+    try:
+        stripe = stripe_action(target=coupon.__dict__)
+        await stripe.action()
+    except _error.InvalidRequestError as ex:
+        await session.delete(coupon)
+        await session.commit()
+        msg = error_stripe_handle(err=ex)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=dict(stripe=msg))
     return coupon
 
 

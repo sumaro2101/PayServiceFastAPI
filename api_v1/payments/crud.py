@@ -7,7 +7,6 @@ from fastapi import HTTPException, status
 from loguru import logger
 from config.models import User, Basket, Order
 from api_stripe.api import ExpireSession
-from config.models.product import Product
 
 
 class PaymentManager:
@@ -54,7 +53,7 @@ class PaymentManager:
         basket.session_id = None
         await session.commit()
         return basket
-    
+
     async def _expire_session(self,
                               session_id: str,
                               ) -> None:
@@ -106,10 +105,6 @@ class PaymentManager:
                                         session: AsyncSession,
                                         ) -> Order:
         order.products.extend(basket.products)
-        await self._reset_basket_state(
-            basket=basket,
-            session=session,
-        )
         return order
 
     async def _get_fill_order(self,
@@ -135,6 +130,10 @@ class PaymentManager:
         fill_order = await self._switch_products_to_order(
             basket=basket,
             order=order,
+            session=session,
+        )
+        await self._reset_basket_state(
+            basket=basket,
             session=session,
         )
         return fill_order

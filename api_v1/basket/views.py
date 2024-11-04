@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config.models.user import User
+
 from . import crud
 from .dependencies import get_or_create_basket
 from api_v1.products.dependencies import get_product_by_id
+from api_v1.auth.auth_validators import get_current_active_user
 from config.models import db_helper, Basket, Product
 from .schemas import CouponeNameSchema
 
@@ -20,11 +23,13 @@ async def get_basket(basket: Basket = Depends(get_or_create_basket)):
 
 @router.put(path='/buy/')
 async def buy_products(coupone: CouponeNameSchema,
+                       user: User = Depends(get_current_active_user),
                        basket: Basket = Depends(get_or_create_basket),
                        session: AsyncSession = Depends(db_helper.session_geter),
                        ):
     payment = crud.Payment(
         coupon=coupone,
+        user=user,
         basket=basket,
         session=session,
     )

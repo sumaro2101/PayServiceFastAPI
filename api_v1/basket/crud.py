@@ -30,13 +30,14 @@ class Payment:
 
     def __init__(self,
                  coupon: CouponeNameSchema,
+                 user: User,
                  basket: Basket,
                  session: AsyncSession,
                  ) -> None:
         self.coupon = coupon.number
         self.basket = basket
         self.products = basket.products
-        self.user = basket.user
+        self.user = user
         self._session = session
         self._unique_code = None
 
@@ -66,6 +67,14 @@ class Payment:
                                 detail=dict(coupone='This coupon '
                                             'is already used'))
         return
+
+    def _check_coupon_having(self,
+                             user: User,
+                             coupon: Coupon,
+                             ) -> None:
+        if coupon not in user.coupons:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(coupon='You not have this coupon'))
 
     @classmethod
     def check_products(cls,
@@ -126,9 +135,13 @@ class Payment:
                 coupon_name=coupon,
                 session=session,
             )
-            coupon_id = coupon.id
+            self._check_coupon_having(
+                user=user,
+                coupon=coupon
+            )
+            coupon = coupon.id
             await self.check_coupon_usage(
-                coupon_id=coupon_id,
+                coupon_id=coupon,
                 user_id=user.id,
                 session=session,
             )
