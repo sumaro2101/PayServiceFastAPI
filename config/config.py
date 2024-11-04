@@ -45,7 +45,8 @@ class AuthJWT(BaseModel):
 
 class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv('SECRET_KEY')
-    LIFESPAN_TOKEN: int = 60 * 5
+    # LIFESPAN_TOKEN: int = 60 * 5
+    RANDBITS: int = 41
     db: DBSettings = DBSettings()
     rabbit: RabbitSettings = RabbitSettings()
     debug: bool = bool(int(os.getenv('DEBUG')))

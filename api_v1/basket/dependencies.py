@@ -1,7 +1,7 @@
 from fastapi import Depends
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from api_v1.auth.auth_validators import get_current_active_user
 from api_v1.basket.schemas import BaseBasketSchema
@@ -17,7 +17,8 @@ async def get_or_create_basket(
     """
     stmt = (Select(Basket)
             .where(Basket.user_id == user.id)
-            .options(joinedload(Basket.products)))
+            .options(joinedload(Basket.products),
+                     selectinload(Basket.coupon)))
     basket = await session.scalar(statement=stmt)
     if not basket:
         schema = BaseBasketSchema(user_id=user.id)

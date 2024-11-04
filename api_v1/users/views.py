@@ -14,7 +14,7 @@ from .permissions import authenticate, is_current_user
 
 
 router = APIRouter(prefix='/users',
-                   tags=['users'],
+                   tags=['Users'],
                    )
 
 

@@ -6,6 +6,7 @@ from fastapi.security import (HTTPBearer,
                               )
 from jwt import InvalidTokenError
 from sqlalchemy import Select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from loguru import logger
@@ -85,7 +86,7 @@ async def get_current_user(payload: dict = Depends(get_current_payload),
     token_type = payload.get(settings.AUTH_JWT.TOKEN_TYPE_FIELD)
     check_type_token(token_type, settings.AUTH_JWT.ACCESS_TOKEN_TYPE)
     username = payload.get('username')
-    stmt = Select(User).where(User.username == username)
+    stmt = Select(User).where(User.username == username).options(selectinload(User.coupons))
     user = await session.scalar(stmt)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,

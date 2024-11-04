@@ -11,13 +11,13 @@ from . import crud
 async def get_user_by_id(user_id: Annotated[int,
                                             Path(),
                                             ],
-                            session: AsyncSession = Depends(db_helper.session_geter),
-                            ) -> User:
+                         session: AsyncSession = Depends(db_helper.session_geter),
+                         ) -> User:
     """ Получение пользователя по ID
     """
     user = await crud.get_user(session=session,
-                                  user_id=user_id,
-                                  )
+                               user_id=user_id,
+                               )
     if user:
         return user
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -32,8 +32,8 @@ async def get_profile_by_id(profile_id: Annotated[int,
     """ Получение профиля по ID
     """
     profile = await crud.get_profile(session=session,
-                                  profile_id=profile_id,
-                                  )
+                                     profile_id=profile_id,
+                                     )
     if profile:
         return profile
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

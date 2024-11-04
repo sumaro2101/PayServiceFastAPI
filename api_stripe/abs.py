@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from .types import TargerItem, StripeType
+from .types import TargetItem, StripeType
 
 
 class Stripe(ABC):
@@ -10,12 +10,12 @@ class Stripe(ABC):
 
     @abstractmethod
     def __init__(self,
-                 target: TargerItem,
+                 target: TargetItem,
                  ) -> None:
         pass
 
     @abstractmethod
-    def _correct_target(cls, target: TargerItem) -> None:
+    def _correct_target(cls, target: TargetItem) -> None:
         pass
 
     @abstractmethod

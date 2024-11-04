@@ -20,7 +20,7 @@ from api_stripe.api import (CreateStripeItem,
 
 
 router = APIRouter(prefix='/products',
-                   tags=['products'],
+                   tags=['Products'],
                    )
 
 

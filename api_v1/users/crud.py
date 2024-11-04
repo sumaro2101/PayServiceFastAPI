@@ -17,7 +17,8 @@ async def get_user(user_id: int,
     stmt = (Select(User).
             where(User.id == user_id).
             options(joinedload(User.profile),
-                    joinedload(User.posts),
+                    selectinload(User.posts),
+                    selectinload(User.coupons),
                     ))
     user = await session.scalar(stmt)
     return user
@@ -29,10 +30,22 @@ async def get_list_users(session: AsyncSession) -> list[User]:
     """
     stmt = (Select(User).
             options(joinedload(User.profile),
+                    selectinload(User.coupons),
                     selectinload(User.posts)).
             order_by(User.id))
     users = await session.scalars(stmt)
-    return list(users)
+    return list(users.unique())
+
+
+@logger.catch(reraise=True)
+async def get_active_list_users(session: AsyncSession) -> list[User]:
+    """Вывод всех активных пользователей
+    """
+    stmt = (Select(User)
+            .where(User.active == True)
+            .options(selectinload(User.coupons)))
+    users = await session.scalars(stmt)
+    return list(users.unique())
 
 
 async def create_user(user_create: UserCreateSchema,

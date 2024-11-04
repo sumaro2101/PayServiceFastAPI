@@ -7,6 +7,7 @@ from .orders.views import router as orders
 from .auth.views import router as auth
 from .basket.views import router as basket
 from .payments.views import router as payment
+from .promos.views import router as promos
 
 
 router = APIRouter()
@@ -24,4 +25,6 @@ router.include_router(auth,
 router.include_router(basket,
                       prefix='/api/v1')
 router.include_router(payment,
+                      prefix='/api/v1')
+router.include_router(promos,
                       prefix='/api/v1')

@@ -6,12 +6,14 @@ from sqlalchemy import String, func
 from sqlalchemy.types import LargeBinary
 
 from config.models import Base
+from .utils import ADD_NOW_TIME
 
 if TYPE_CHECKING:
     from .post import Post
     from .profile import Profile
     from .basket import Basket
     from .order import Order
+    from .promo import Coupon
 
 
 class User(Base):
@@ -20,7 +22,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True)
     email: Mapped[str] = mapped_column(unique=True)
     phone: Mapped[str] = mapped_column(nullable=True)
-    create_date: Mapped[datetime] = mapped_column(insert_default=func.now())
+    create_date: Mapped[datetime] = ADD_NOW_TIME()
     password: Mapped[str] = mapped_column(LargeBinary)
     active: Mapped[bool] = mapped_column(default=True)
 
@@ -28,4 +30,7 @@ class User(Base):
     profile: Mapped['Profile'] = relationship(back_populates='user')
     basket: Mapped['Basket'] = relationship(back_populates='user')
     orders: Mapped[list['Order']] = relationship(back_populates='user')
-
+    coupons: Mapped[list['Coupon']] = relationship(
+        back_populates='users',
+        secondary='coupon_user_association',
+        )

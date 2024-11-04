@@ -12,6 +12,7 @@ from config.config import settings
 from config.models.user import User
 from .exeptions import InvalidAlgorithm
 from .types import is_protected_type
+from .utils import base36_to_int, int_to_base36
 
 
 class UserPathHasher:
@@ -25,28 +26,6 @@ class UserPathHasher:
     def __init__(self, user: User) -> None:
         self._user = user
         self.algorithm = 'sha256'
-
-    def int_to_base36(self, i):
-        """Convert an integer to a base36 string."""
-        char_set = "0123456789abcdefghijklmnopqrstuvwxyz"
-        if i < 0:
-            raise ValueError("Negative base36 conversion input.")
-        if i < 36:
-            return char_set[i]
-        b36 = ""
-        while i != 0:
-            i, n = divmod(i, 36)
-            b36 = char_set[n] + b36
-        return b36
-
-    def base36_to_int(self, s):
-        """
-        Convert a base 36 string to an int. Raise ValueError if the input won't fit
-        into an int.
-        """
-        if len(s) > 13:
-            raise ValueError("Base36 input too large")
-        return int(s, 36)
 
     def _force_bytes(self,
                      s,
@@ -98,7 +77,7 @@ class UserPathHasher:
                                    timestamp,
                                    secret,
                                    ):
-        ts_b36 = self.int_to_base36(timestamp)
+        ts_b36 = int_to_base36(timestamp)
         hash_string = self._salted_hmac(
             self.__key_salt,
             self._make_hash_value(user, timestamp),
@@ -171,7 +150,7 @@ class UserPathHasher:
             self._num_seconds(self._now()),
             self.__secret_key,
         )
-        return f'{uid}/{token}/'
+        return f'{uid}/{token}'
 
     def check_token(self, token):
         """
@@ -189,7 +168,7 @@ class UserPathHasher:
             return False
 
         try:
-            ts = self.base36_to_int(ts_b36)
+            ts = base36_to_int(ts_b36)
             logger.info(f'ts = {ts}')
         except ValueError:
             return False
@@ -201,8 +180,8 @@ class UserPathHasher:
             return False
 
         # Check the timestamp is within limit.
-        if (self._num_seconds(self._now()) - ts) > settings.LIFESPAN_TOKEN:
-            return False
+        # if (self._num_seconds(self._now()) - ts) > settings.LIFESPAN_TOKEN:
+        #     return False
 
         return True
 

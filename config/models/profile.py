@@ -5,6 +5,7 @@ from sqlalchemy import String, Text
 
 from config.models import Base
 from .mixins import UserRelationMixin
+from .utils import EMPTY_TEXT_DEFAULT
 
 
 class Profile(UserRelationMixin, Base):
@@ -15,4 +16,4 @@ class Profile(UserRelationMixin, Base):
     
     first_name: Mapped[Optional[str]] = mapped_column(String(40))
     last_name: Mapped[Optional[str]] = mapped_column(String(60))
-    bio: Mapped[Optional[str]] = mapped_column(Text)
+    bio: Mapped[Optional[str]] = EMPTY_TEXT_DEFAULT()

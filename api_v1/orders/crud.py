@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import Select, ScalarResult
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from fastapi import HTTPException, status
 
@@ -12,7 +12,10 @@ from .utils import get_list_orders_to_append
 async def get_order(order_id: int,
                     session: AsyncSession,
                     ):
-    stmt = Select(Order).where(Order.id == order_id).options(selectinload(Order.products))
+    stmt = (Select(Order)
+            .where(Order.id == order_id)
+            .options(selectinload(Order.products),
+                     joinedload(Order.coupon)))
     result: ScalarResult = await session.scalar(stmt)
     return result
 
@@ -60,6 +63,9 @@ async def update_order(session: AsyncSession,
 
 
 async def list_orders(session: AsyncSession):
-    stmt = Select(Order).order_by(Order.id).options(selectinload(Order.products))
+    stmt = (Select(Order)
+            .order_by(Order.id)
+            .options(selectinload(Order.products),
+                     joinedload(Order.coupon)))
     result: ScalarResult = list(await session.scalars(stmt))
     return result
