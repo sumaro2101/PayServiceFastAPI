@@ -18,6 +18,9 @@ async def get_channel(connect: aio_pika.connect) -> aio_pika.Channel:
 
 
 class ConnectMQ:
+    """
+    Соединение с сервером RabbitMQ
+    """
 
     def __init__(self) -> None:
         self._connection = None
