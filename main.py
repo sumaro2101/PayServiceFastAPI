@@ -12,9 +12,9 @@ import asyncio
 async def lifespan(app: FastAPI):
     async with db_helper.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # loop = asyncio.get_running_loop()
-        # task = loop.create_task(mq_connect.consume(loop))
-        # await task
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(mq_connect.consume(loop))
+        await task
         yield
     await db_helper.dispose()
 

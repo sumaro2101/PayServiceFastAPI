@@ -19,8 +19,8 @@ class StripeSettings(BaseModel):
 class RabbitSettings(BaseModel):
     RMQ_HOST: str = os.getenv('RMQ_HOST')
     RMQ_PORT: str = os.getenv('RMQ_PORT')
-    RMQ_USER: str = os.getenv('RMQ_USER')
-    RMQ_PASSWORD: str = os.getenv('RMQ_PASSWORD')
+    RMQ_USER: str = os.getenv('RABBITMQ_DEFAULT_USER')
+    RMQ_PASSWORD: str = os.getenv('RABBITMQ_DEFAULT_PASS')
 
 
 class DBSettings(BaseModel):
