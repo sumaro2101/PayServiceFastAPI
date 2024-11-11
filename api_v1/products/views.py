@@ -1,4 +1,4 @@
-from fastapi import Path, APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, status, Depends
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,11 +12,6 @@ from .schemas import (Product,
                       )
 from config.models.db_helper import db_helper
 from .dependencies import get_product_by_id
-from api_stripe.api import (CreateStripeItem,
-                            UpdateStripeItem,
-                            DeactivateStripeItem,
-                            ActivateStipeItem,
-                            )
 
 
 router = APIRouter(prefix='/products',
@@ -34,7 +29,6 @@ async def create_product_api_view(product: ProductCreate,
                                   ):
     return await crud.product_create(session=session,
                                      product=product,
-                                     stripe_action=CreateStripeItem,
                                      )
 
 
@@ -49,7 +43,6 @@ async def update_product_api_view(product_update: ProductUpdate,
     return await crud.product_update(product=product,
                                      product_update=product_update,
                                      session=session,
-                                     stripe_action=UpdateStripeItem,
                                      )
 
 
@@ -62,7 +55,6 @@ async def activate_product_api_view(product: Product = Depends(get_product_by_id
                                     ):
     return await crud.product_activate(session=session,
                                        product=product,
-                                       stripe_action=ActivateStipeItem,
                                        )
 
 
@@ -76,7 +68,6 @@ async def deactivate_product_api_view(
     ):
     return await crud.product_deactivate(product=product,
                                          session=session,
-                                         stripe_action=DeactivateStripeItem,
                                          )
 
 

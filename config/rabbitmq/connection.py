@@ -39,7 +39,6 @@ class Celery(celery.Celery):
         return decorator
 
 
-app = Celery('celery')
+app = Celery(__name__)
 app.conf.broker_url = settings.rabbit.broker_url
-app.conf.result_backend = settings.rabbit.broker_url
-app.autodiscover_tasks(packages=['app.config.rabbitmq.tasks'])
+app.autodiscover_tasks(packages=['api_v1.products'])

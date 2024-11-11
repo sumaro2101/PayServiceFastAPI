@@ -28,9 +28,7 @@ class RabbitSettings(BaseModel):
                        '@' +
                        RMQ_HOST +
                        ':' +
-                       RMQ_PORT +
-                       '/' +
-                       'rabbit')
+                       RMQ_PORT)
     DEFAULT_QUEUE: str = 'rabbit_test'
 
 
