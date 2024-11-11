@@ -2,9 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from config.models.base import Base
 from config.models.db_helper import db_helper
-from config.rabbitmq.connection import mq_connect
 from api_v1 import router
-import asyncio
 
 
 @asynccontextmanager

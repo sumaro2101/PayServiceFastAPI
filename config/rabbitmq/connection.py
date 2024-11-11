@@ -21,7 +21,7 @@ class Celery(celery.Celery):
         task: Callable[..., Awaitable] | None = None,
         **opts: Any,
     ) -> Callable:
-        create_task = super().task()
+        create_task = super().task
 
         def decorator(func: Callable[..., Awaitable]) -> Callable:
             @create_task(**opts)

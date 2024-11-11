@@ -12,6 +12,7 @@ from config.models.product import Product
 from .schemas import ProductCreate, ProductUpdate
 from .utils import add_params
 from api_stripe.abs import Stripe
+from config.rabbitmq.tasks import crud_stripe_item_task
 
 
 async def get_products(session: AsyncSession) -> Union[list[Product] |
@@ -43,8 +44,7 @@ async def product_create(session: AsyncSession,
     session.add(prefetch_create)
     await session.commit()
     await session.refresh(prefetch_create)
-    stripe = stripe_action(prefetch_create.__dict__)
-    await stripe.action()
+    crud_stripe_item_task.delay(stripe_action, prefetch_create.__dict__)
     return prefetch_create
 
 
