@@ -135,6 +135,9 @@ ExpireSession(
 ).expire_session()
 ```
 
+## RabbitMQ, Celery
+
+
 # Dependencies
 В проекте используются зависимости:
 - fastapi
@@ -151,6 +154,8 @@ ExpireSession(
 - pytz
 - uvicorn
 - python-dotenv
+- celery
+- flower
 
 ## SQLAlchemy
 SQLAlchemy используется асинхронный.
