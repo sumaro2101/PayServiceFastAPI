@@ -41,4 +41,6 @@ class Celery(celery.Celery):
 
 app = Celery(__name__)
 app.conf.broker_url = settings.rabbit.broker_url
-app.autodiscover_tasks(packages=['api_v1.products'])
+app.autodiscover_tasks(packages=['api_v1.products',
+                                 'api_v1.promos',
+                                 ])
