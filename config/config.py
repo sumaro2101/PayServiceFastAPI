@@ -19,8 +19,17 @@ class StripeSettings(BaseModel):
 class RabbitSettings(BaseModel):
     RMQ_HOST: str = os.getenv('RMQ_HOST')
     RMQ_PORT: str = os.getenv('RMQ_PORT')
-    RMQ_USER: str = os.getenv('RMQ_USER')
-    RMQ_PASSWORD: str = os.getenv('RMQ_PASSWORD')
+    RMQ_USER: str = os.getenv('RABBITMQ_DEFAULT_USER')
+    RMQ_PASSWORD: str = os.getenv('RABBITMQ_DEFAULT_PASS')
+    broker_url: str = ('amqp://' +
+                       RMQ_USER +
+                       ':' +
+                       RMQ_PASSWORD +
+                       '@' +
+                       RMQ_HOST +
+                       ':' +
+                       RMQ_PORT)
+    DEFAULT_QUEUE: str = 'rabbit_test'
 
 
 class DBSettings(BaseModel):

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-import aio_pika
 from api_v1.users.schemas import UserAuthSchema
 from config.models.user import User
 from .schemas import TokenInfo

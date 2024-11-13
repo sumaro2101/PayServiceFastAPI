@@ -135,6 +135,96 @@ ExpireSession(
 ).expire_session()
 ```
 
+## RabbitMQ, Celery
+Используется Брокер сообщений RabbitMQ и Worker Celery
+### Docker RabbitMQ
+```yaml
+rabbitmq:
+    hostname: rabbitmq
+    image: rabbitmq:4.0.3-management
+    env_file:
+      - .env
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq-data:
+```
+
+### Настройка RabbitMQ
+```python
+# .env
+RABBITMQ_DEFAULT_USER=guest # Логин RabbitMQ
+RABBITMQ_DEFAULT_PASS=guest # Пароль RabbitMQ
+```
+
+### Docker Celery Worker
+```yaml
+celery_worker:
+    build: 
+      context: .
+      dockerfile: ./docker/fastapi/Dockerfile
+    command: /start-celeryworker
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+```
+
+### Настройка Celery
+```python
+# congin/rabbitmq/connection.py
+from config.config import settings
+
+
+app = Celery(__name__)
+app.conf.broker_url = settings.rabbit.broker_url
+app.autodiscover_tasks(packages=['project.packages'])
+```
+
+### Класс Celery
+Есть реализация Асихронного класса Celery
+для выполнения задач в асинхронном режиме.
+
+### Использование
+После настройки RabbitMQ и Celery
+Вам необходимо запустить проект (инструкции ниже)
+а затем перейти по адрессу:
+http://localhost:15672/
+Это будет страница RabbitMQ для просмотра всех каналов, очередей,
+обмеников, пользователей, и.т.д.
+Вам нужно будет ввести логин и пароль для аутентификации который вы указали в .env
+
+## Flower
+Flower это мощное приложение для отслеживания всех
+задач на стороне Worker.
+### Docker Flower
+```yaml
+dashboard:
+    build: 
+      context: .
+      dockerfile: ./docker/fastapi/Dockerfile
+    command: /start-flower
+    volumes:
+      - .:/app
+    ports:
+      - 5555:5555
+    env_file:
+      - .env
+```
+
+### Настройка
+Предварительная настройка не требуется, все настройки подтягиваются
+автоматически из RabbitMQ.
+
+### Использование
+Для использования Flower вам нужно перейти по адрессу:
+http://localhost:5555/
+У вас откроется страница Flower с полной информацией о Worker и Tasks.
+
 # Dependencies
 В проекте используются зависимости:
 - fastapi
@@ -151,6 +241,8 @@ ExpireSession(
 - pytz
 - uvicorn
 - python-dotenv
+- celery
+- flower
 
 ## SQLAlchemy
 SQLAlchemy используется асинхронный.
@@ -170,3 +262,37 @@ async def get_session(session: AsyncSession = Depends(db_helper.session_geter)):
     current_session = session
     return session
 ```
+
+# Install
+## ENV
+Для запуска проекта вам нужно установить переменные окружения
+```python
+# .env
+POSTGRES_PASSWORD=password # Пароль базы данных (настройка)
+DB_PASSWORD=password # Пароль базы даных (использование)
+RABBITMQ_DEFAULT_USER=user # Логин для RabbitMQ
+RABBITMQ_DEFAULT_PASS=password # Пароль для RabbitMQ
+STRIPE_API=some_stripe:api # API_KEY stripe платежная система
+```
+Для получения API_KEY Stripe вам нужно перейти на официальную страницу Stripe [link](https://stripe.com)
+и зарегистрироваться, в последствии вы получите ключи для API.
+
+
+## Docker
+Проект находится под системой контеризации Docker
+Если у вас нет Docker, прейдите на официальную страницу Docker [link](https://www.docker.com)
+и скачайте от туда Docker (в случае если у вас система MAC, Windows, в ином установка посредством терминала).
+
+Неоходимо совершить билд образов и контейнеров
+```bash
+docker compose build
+```
+Затем запустить образы
+```bash
+docker compose up
+```
+
+# OpenAI
+FastAPI поддерживает автоматическую генерацию документации и взаимодействие с API.
+Для более легкого просмотра возможностей проекта (пока нет клиента) вы можете прейти по ссылке:
+http://localhost:8080/docs/

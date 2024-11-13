@@ -1,39 +1,46 @@
-import aio_pika
+from typing import Any, Awaitable, Callable
+import celery
+from functools import wraps
+
 from config.config import settings
-from loguru import logger
 
-connection_params = dict(
-    host=settings.rabbit.RMQ_HOST,
-    port=int(settings.rabbit.RMQ_PORT),
-    login=settings.rabbit.RMQ_USER,
-    password=settings.rabbit.RMQ_PASSWORD,
-)
+import asyncio
 
 
-async def get_connection() -> aio_pika.connect:
-    return await aio_pika.connect(**connection_params)
+class Celery(celery.Celery):
+    """
+    Инициализация Celery
+    """
 
-async def get_channel(connect: aio_pika.connect) -> aio_pika.Channel:
-    return await aio_pika.Channel(connection=connect)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.loop = asyncio.get_event_loop()
+
+    def task(
+        self,
+        task: Callable[..., Awaitable] | None = None,
+        **opts: Any,
+    ) -> Callable:
+        create_task = super().task
+
+        def decorator(func: Callable[..., Awaitable]) -> Callable:
+            @create_task(**opts)
+            @wraps(func)
+            def wrapper(*args,
+                        loop: asyncio.AbstractEventLoop | None = None,
+                        **kwargs,
+                        ):
+                loop = loop or self.loop
+                return loop.run_until_complete(func(*args, **kwargs))
+            return wrapper
+
+        if task:
+            return decorator(task)
+        return decorator
 
 
-class ConnectMQ:
-
-    def __init__(self) -> None:
-        self._connection = None
-        self._channel = None
-
-    async def consume(self, loop):
-        self._connection = await aio_pika.connect_robust(
-            host=settings.rabbit.RMQ_HOST,
-            port=int(settings.rabbit.RMQ_PORT),
-            login=settings.rabbit.RMQ_USER,
-            password=settings.rabbit.RMQ_PASSWORD,
-            loop=loop,
-        )
-        self._channel = await self._connection.channel()
-        queue = await self._channel.declare_queue('test')
-        return self._connection
-
-
-mq_connect = ConnectMQ()
+app = Celery(__name__)
+app.conf.broker_url = settings.rabbit.broker_url
+app.autodiscover_tasks(packages=['api_v1.products',
+                                 'api_v1.promos',
+                                 ])

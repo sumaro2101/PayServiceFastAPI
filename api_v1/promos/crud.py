@@ -15,6 +15,10 @@ from .schemas import CouponSchemaCreate, CouponSchemaUpdate
 from config.models import Coupon
 from api_stripe.handler import error_stripe_handle
 from api_v1.users.crud import get_active_list_users, get_list_users
+from api_v1.promos.tasks import (
+    update_coupon_stripe_task,
+    delete_coupon_stripe_task,
+    )
 
 
 async def get_list_promos(session: AsyncSession) -> list[Coupon]:
@@ -62,8 +66,7 @@ async def update_coupon(coupon_schema: CouponSchemaUpdate,
      in update_schema.items()]
     await session.commit()
     update_schema.update(id=coupon.id)
-    stripe = stripe_action(target=update_schema)
-    await stripe.action()
+    update_coupon_stripe_task.delay(update_schema)
     return coupon
 
 
@@ -98,8 +101,7 @@ async def delete_coupon(coupon: Coupon,
     stripe_value = dict(id=coupon.id)
     await session.delete(coupon)
     await session.commit()
-    stripe = stripe_action(target=stripe_value)
-    await stripe.action()
+    delete_coupon_stripe_task.delay(stripe_value)
 
 
 async def gift_to_user(user: User,
