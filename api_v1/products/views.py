@@ -2,15 +2,13 @@ from fastapi import APIRouter, status, Depends
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.models import db_helper
-
 from . import crud
 from .schemas import (Product,
                       ProductCreate,
                       ProductUpdate,
                       ActivityProductSchema,
                       )
-from config.models.db_helper import db_helper
+from config.database import db_connection
 from .dependencies import get_product_by_id
 
 
@@ -25,7 +23,7 @@ router = APIRouter(prefix='/products',
              status_code=status.HTTP_201_CREATED,
              )
 async def create_product_api_view(product: ProductCreate,
-                                  session: AsyncSession = Depends(db_helper.session_geter),
+                                  session: AsyncSession = Depends(db_connection.session_geter),
                                   ):
     return await crud.product_create(session=session,
                                      product=product,
@@ -38,7 +36,7 @@ async def create_product_api_view(product: ProductCreate,
               )
 async def update_product_api_view(product_update: ProductUpdate,
                                   product: Product = Depends(get_product_by_id),
-                                  session: AsyncSession = Depends(db_helper.session_geter),
+                                  session: AsyncSession = Depends(db_connection.session_geter),
                                   ) -> Product:
     return await crud.product_update(product=product,
                                      product_update=product_update,
@@ -51,7 +49,7 @@ async def update_product_api_view(product_update: ProductUpdate,
               response_model=ActivityProductSchema,
               )
 async def activate_product_api_view(product: Product = Depends(get_product_by_id),
-                                    session: AsyncSession = Depends(db_helper.session_geter),
+                                    session: AsyncSession = Depends(db_connection.session_geter),
                                     ):
     return await crud.product_activate(session=session,
                                        product=product,
@@ -64,7 +62,7 @@ async def activate_product_api_view(product: Product = Depends(get_product_by_id
                )
 async def deactivate_product_api_view(
     product: Product = Depends(get_product_by_id),
-    session: AsyncSession = Depends(db_helper.session_geter),
+    session: AsyncSession = Depends(db_connection.session_geter),
     ):
     return await crud.product_deactivate(product=product,
                                          session=session,
@@ -75,7 +73,7 @@ async def deactivate_product_api_view(
             name='Получение списка продуктов',
             response_model=list[Product],
             )
-async def list_products_api_view(session: AsyncSession = Depends(db_helper.session_geter)):
+async def list_products_api_view(session: AsyncSession = Depends(db_connection.session_geter)):
     return await crud.get_products(session=session)
 
 

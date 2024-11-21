@@ -3,7 +3,7 @@ import stripe
 from loguru import logger
 
 from config.models import Product
-from config.config import settings
+from config import settings
 from api_stripe.types import StipeResult
 
 

@@ -2,7 +2,7 @@ import stripe
 
 from loguru import logger
 
-from config.config import settings
+from config import settings
 from config.models import Product, User
 from api_stripe.api import StripeItems
 from api_stripe.types import StipeResult, SessionParams, Session, StripeType

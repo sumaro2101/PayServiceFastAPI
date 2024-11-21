@@ -9,7 +9,7 @@ from api_stripe.abs import Stripe
 from api_stripe.exeptions import NotFindInputError, NotCorrectInputType
 from api_stripe.types import TargetItem, StripeType, StipeResult
 from api_stripe.handler import error_stripe_handle
-from config.config import settings
+from config import settings
 
 
 class CreateStripeItem(Stripe):

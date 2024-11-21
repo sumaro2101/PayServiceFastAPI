@@ -9,7 +9,6 @@ __all__ = ('Base',
            'BasketProductAssociation',
            'CouponUserAssociation',
            'Basket',
-           'db_helper',
            )
 
 from .base import Base
@@ -23,4 +22,3 @@ from .m2m_order_product import OrderProductAssociation
 from .m2m_basket_product import BasketProductAssociation
 from .m2m_coupon_user import CouponUserAssociation
 from .basket import Basket
-from .db_helper import db_helper

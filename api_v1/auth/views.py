@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from api_v1.users.schemas import UserAuthSchema
 from config.models.user import User
 from .schemas import TokenInfo
 from .auth_validators import validate_auth_user, get_access_of_refresh

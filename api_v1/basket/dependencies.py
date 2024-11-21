@@ -5,12 +5,13 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from api_v1.auth.auth_validators import get_current_active_user
 from api_v1.basket.schemas import BaseBasketSchema
-from config.models import User, Basket, db_helper
+from config.models import User, Basket
+from config.database import db_connection
 
 
 async def get_or_create_basket(
     user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(db_helper.session_geter),
+    session: AsyncSession = Depends(db_connection.session_geter),
     ) -> Basket:
     """
     Получение или создание корзины пользователя

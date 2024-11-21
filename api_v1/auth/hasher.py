@@ -8,7 +8,7 @@ from binascii import Error as BinasciiError
 
 from loguru import logger
 
-from config.config import settings
+from config import settings
 from config.models.user import User
 from .exeptions import InvalidAlgorithm
 from .types import is_protected_type

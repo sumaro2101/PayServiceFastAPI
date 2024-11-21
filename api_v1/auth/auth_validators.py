@@ -14,8 +14,9 @@ from loguru import logger
 from api_v1.auth.utils import check_password, decode_jwt, check_type_token
 from api_v1.auth.hasher import UserPathHasher
 from api_v1.users.schemas import UserAuthSchema
-from config.models import User, db_helper
-from config.config import settings
+from config.models import User
+from config.database import db_connection
+from config import settings
 
 
 http_bearer = HTTPBearer()
@@ -24,7 +25,7 @@ oauth_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login/')
 
 async def get_user_by_hash(uid: str,
                            token: str,
-                           session: AsyncSession = Depends(db_helper.session_geter)):
+                           session: AsyncSession = Depends(db_connection.session_geter)):
     user_id = int(UserPathHasher.urlsafe_base64_decode(uid=uid).decode())
     logger.info(f'user_id = {user_id}')
     stmt = Select(User).where(User.id == user_id)
@@ -37,7 +38,7 @@ async def get_user_by_hash(uid: str,
                             detail=dict(permission='Доступ запрещен'))
 
 
-async def validate_auth_user(session: AsyncSession = Depends(db_helper.session_geter),
+async def validate_auth_user(session: AsyncSession = Depends(db_connection.session_geter),
                             username: str = Form(),
                             password: str = Form(),
                             ) -> User | None:
@@ -81,7 +82,7 @@ def get_current_payload(credentials: Annotated[HTTPAuthorizationCredentials,
 
 
 async def get_current_user(payload: dict = Depends(get_current_payload),
-                            session: AsyncSession = Depends(db_helper.session_geter),
+                            session: AsyncSession = Depends(db_connection.session_geter),
                             ):
     token_type = payload.get(settings.AUTH_JWT.TOKEN_TYPE_FIELD)
     check_type_token(token_type, settings.AUTH_JWT.ACCESS_TOKEN_TYPE)
@@ -97,7 +98,7 @@ async def get_current_user(payload: dict = Depends(get_current_payload),
 
 
 async def get_access_of_refresh(payload: dict = Depends(get_current_payload),
-                                session: AsyncSession = Depends(db_helper.session_geter),
+                                session: AsyncSession = Depends(db_connection.session_geter),
                                 ):
     token_type = payload.get(settings.AUTH_JWT.TOKEN_TYPE_FIELD)
     check_type_token(token_type, settings.AUTH_JWT.REFRESH_TOKEN_TYPE)

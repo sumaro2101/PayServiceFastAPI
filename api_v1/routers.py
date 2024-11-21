@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from config.config import settings
+from config import settings
 from api_v1.users.views import router as users
 from .products.views import router as products
 from .users.views import router as users

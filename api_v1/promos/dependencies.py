@@ -4,12 +4,12 @@ from sqlalchemy.orm import selectinload
 
 from fastapi import HTTPException, status, Depends
 
-from config.models import Coupon, db_helper
-from config.models.user import User
+from config.models import Coupon
+from config.database import db_connection
 
 
 async def get_coupon_by_name(coupon_name: str,
-                             session: AsyncSession = Depends(db_helper.session_geter),
+                             session: AsyncSession = Depends(db_connection.session_geter),
                              ) -> Coupon:
     stmt = (Select(Coupon)
             .where(Coupon.number == coupon_name)

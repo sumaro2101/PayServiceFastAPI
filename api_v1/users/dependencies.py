@@ -4,14 +4,14 @@ from fastapi import HTTPException, Path, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.models import User
-from config.models import db_helper
+from config.database import db_connection
 from . import crud
 
 
 async def get_user_by_id(user_id: Annotated[int,
                                             Path(),
                                             ],
-                         session: AsyncSession = Depends(db_helper.session_geter),
+                         session: AsyncSession = Depends(db_connection.session_geter),
                          ) -> User:
     """ Получение пользователя по ID
     """
@@ -27,7 +27,7 @@ async def get_user_by_id(user_id: Annotated[int,
 async def get_profile_by_id(profile_id: Annotated[int,
                                             Path(),
                                             ],
-                            session: AsyncSession = Depends(db_helper.session_geter),
+                            session: AsyncSession = Depends(db_connection.session_geter),
                             ) -> User:
     """ Получение профиля по ID
     """

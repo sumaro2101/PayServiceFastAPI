@@ -1,28 +1,33 @@
-import os
 from pathlib import Path
-
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from starlette.config import Config
 
 
 base_dir = Path(__file__).resolve().parent.parent
 log_dir = base_dir.joinpath('logs')
+certs_dir = base_dir / 'certs'
 
-CERTS_DIR = base_dir / 'certs'
+config = Config('.env')
 
-
-load_dotenv('.env')
 
 class StripeSettings(BaseModel):
-    API_KEY: str = os.getenv('STRIPE_API')
+    """
+    Настройки Stripe
+    """
+
+    API_KEY: str = config('STRIPE_API')
 
 
 class RabbitSettings(BaseModel):
-    RMQ_HOST: str = os.getenv('RMQ_HOST')
-    RMQ_PORT: str = os.getenv('RMQ_PORT')
-    RMQ_USER: str = os.getenv('RABBITMQ_DEFAULT_USER')
-    RMQ_PASSWORD: str = os.getenv('RABBITMQ_DEFAULT_PASS')
+    """
+    Настройки RabbitMQ
+    """
+
+    RMQ_HOST: str = config('RMQ_HOST')
+    RMQ_PORT: str = config('RMQ_PORT')
+    RMQ_USER: str = config('RABBITMQ_DEFAULT_USER')
+    RMQ_PASSWORD: str = config('RABBITMQ_DEFAULT_PASS')
     broker_url: str = ('amqp://' +
                        RMQ_USER +
                        ':' +
@@ -34,19 +39,40 @@ class RabbitSettings(BaseModel):
     DEFAULT_QUEUE: str = 'rabbit_test'
 
 
+class TestDBSettings(BaseModel):
+    """
+    Настройки тестовой базы данных
+    """
+
+    _engine: str = config('TEST_DB_ENGINE')
+    _owner: str = config('TEST_DB_USER')
+    _password: str = config('TEST_DB_PASSWORD')
+    _name: str = config('TEST_DB_HOST')
+    _db_name: str = config('TEST_DB_NAME')
+    url: str = f'{_engine}://{_owner}:{_password}@{_name}/{_db_name}'
+
+
 class DBSettings(BaseModel):
-    _engine: str = os.getenv('DB_ENGINE')
-    _owner: str = os.getenv('DB_USER')
-    _password: str = os.getenv('DB_PASSWORD')
-    _name: str = os.getenv('DB_HOST')
-    _db_name: str = os.getenv('DB_NAME')
+    """
+    Настройки DataBase
+    """
+
+    _engine: str = config('DB_ENGINE')
+    _owner: str = config('DB_USER')
+    _password: str = config('DB_PASSWORD')
+    _name: str = config('DB_HOST')
+    _db_name: str = config('DB_NAME')
     url: str = f'{_engine}://{_owner}:{_password}@{_name}/{_db_name}'
 
 
 class AuthJWT(BaseModel):
-    PRIVATE_KEY_PATH: Path = CERTS_DIR / 'jwt-private.pem'
-    PUBLIC_KEY_PATH: Path = CERTS_DIR / 'jwt-public.pem'
-    ALGORITHM: str = os.getenv('ALGORITHM_JWT_AUTH')
+    """
+    Настройки JWT аутентификации
+    """
+
+    PRIVATE_KEY_PATH: Path = certs_dir / 'jwt-private.pem'
+    PUBLIC_KEY_PATH: Path = certs_dir / 'jwt-public.pem'
+    ALGORITHM: str = config('ALGORITHM_JWT_AUTH')
     EXPIRE_MINUTES: int = 60
     REFRESH_EXPIRE_MINUTES: int = ((60 * 24) * 30)
     TOKEN_TYPE_FIELD: str = 'type'
@@ -55,12 +81,20 @@ class AuthJWT(BaseModel):
 
 
 class Settings(BaseSettings):
-    SECRET_KEY: str = os.getenv('SECRET_KEY')
+    """
+    Настройки проекта
+    """
+
+    model_config = SettingsConfigDict(
+        extra='ignore',
+    )
+    SECRET_KEY: str = config('SECRET_KEY')
     # LIFESPAN_TOKEN: int = 60 * 5
     RANDBITS: int = 41
     db: DBSettings = DBSettings()
+    test_db: TestDBSettings = TestDBSettings()
     rabbit: RabbitSettings = RabbitSettings()
-    debug: bool = bool(int(os.getenv('DEBUG')))
+    debug: bool = bool(int(config('DEBUG')))
     FAIL_BASIC_AUTH: str = 'Не верный логин или пароль'
     FAIL_TOKEN_AUTH: str = 'Токен не валидный'
     AUTH_JWT: AuthJWT = AuthJWT()
@@ -68,7 +102,8 @@ class Settings(BaseSettings):
     API_PREFIX: str = '/api/v1'
     BASE_DIR: Path = base_dir
     LOG_DIR: Path = log_dir
-    CURRENT_ORIGIN: str = os.getenv('CURRENT_ORIGIN')
+    CERTS_DIR: Path = certs_dir
+    CURRENT_ORIGIN: str = config('CURRENT_ORIGIN')
 
 
 settings = Settings()

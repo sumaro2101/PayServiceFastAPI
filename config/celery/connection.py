@@ -2,7 +2,7 @@ from typing import Any, Awaitable, Callable
 import celery
 from functools import wraps
 
-from config.config import settings
+from config import settings
 
 import asyncio
 

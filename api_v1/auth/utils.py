@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 
 from config.models.user import User
 
-from config.config import settings
+from config import settings
 
 
 def encode_jwt(payload: dict[str, Any],

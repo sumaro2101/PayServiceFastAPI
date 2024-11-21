@@ -5,7 +5,7 @@ from api_stripe.abs import Stripe
 from api_stripe.exeptions import NotCorrectInputType, NotFindInputError
 from api_stripe.types import TargetItem, StripeType
 from api_stripe.handler import convert_date_to_unix_time
-from config.config import settings
+from config import settings
 
 
 class CreateDiscountCoupon(Stripe):

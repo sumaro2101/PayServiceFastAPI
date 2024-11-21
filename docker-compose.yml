@@ -68,6 +68,20 @@ services:
     env_file:
       - .env
 
+
+  test_db:
+    restart: always
+    image: postgres:16.3-alpine
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data/
+    hostname: test_db
+    expose:
+      - 5431
+    environment:
+      - POSTGRES_DB=${TEST_POSTGRES_DB}
+      - POSTGRES_PASSWORD=${TEST_POSTGRES_PASSWORD}
+
 volumes:
   postgres_data:
+  test_postgres_data:
   rabbitmq-data:

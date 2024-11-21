@@ -3,7 +3,7 @@ from api_v1.auth.utils import encode_jwt
 
 from typing import ClassVar
 
-from config.config import settings
+from config import settings
 from config.models.user import User
 
 

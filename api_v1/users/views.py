@@ -1,9 +1,9 @@
-from typing import Annotated
-from fastapi import APIRouter, Depends, status, Path
+from fastapi import APIRouter, Depends, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.models import User, db_helper, Profile
+from config.models import User, Profile
+from config.database import db_connection
 from .schemas import (UserCreateSchema,
                       UserUpdateSchema,
                       ProfileCreateShema,
@@ -33,7 +33,7 @@ async def get_user_api_view(
 @router.get('/',
             name='Список пользователей',
             )
-async def get_list_user_api_view(session: AsyncSession = Depends(db_helper.session_geter)):
+async def get_list_user_api_view(session: AsyncSession = Depends(db_connection.session_geter)):
     return await crud.get_list_users(session=session)
 
 
@@ -42,7 +42,7 @@ async def get_list_user_api_view(session: AsyncSession = Depends(db_helper.sessi
              name='Создание пользователя',
              )
 async def create_user(user: UserCreateSchema,
-                      session: AsyncSession = Depends(db_helper.session_geter),
+                      session: AsyncSession = Depends(db_connection.session_geter),
                       ):
     """Создание пользователя
     """
@@ -54,7 +54,7 @@ async def create_user(user: UserCreateSchema,
               )
 async def update_user(attrs: UserUpdateSchema,
                       is_current_user: User = Depends(is_current_user),
-                      session: AsyncSession = Depends(db_helper.session_geter)):
+                      session: AsyncSession = Depends(db_connection.session_geter)):
     """Обновление пользователя
     """
     return await crud.update_user(user=is_current_user,
@@ -68,7 +68,7 @@ async def update_user(attrs: UserUpdateSchema,
                responses=None,
                )
 async def delete_user(is_current_user: User = Depends(is_current_user),
-                      session: AsyncSession = Depends(db_helper.session_geter),
+                      session: AsyncSession = Depends(db_connection.session_geter),
                       ):
     """Удаление пользователя
     """
@@ -85,7 +85,7 @@ async def delete_user(is_current_user: User = Depends(is_current_user),
              )
 async def profile_create_api_view(attrs: ProfileCreateShema,
                                   is_current_user: User = Depends(is_current_user),
-                                  session: AsyncSession = Depends(db_helper.session_geter),
+                                  session: AsyncSession = Depends(db_connection.session_geter),
                                   ):
     profile = await crud.create_profile(attrs=attrs,
                                         user_id=is_current_user,

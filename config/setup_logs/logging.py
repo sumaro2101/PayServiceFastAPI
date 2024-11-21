@@ -1,7 +1,7 @@
 import sys
 from loguru import logger
 
-from config.config import settings
+from config import settings
 
 
 log_directory = settings.LOG_DIR

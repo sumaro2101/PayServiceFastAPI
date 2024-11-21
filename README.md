@@ -177,7 +177,7 @@ celery_worker:
 ### Настройка Celery
 ```python
 # congin/rabbitmq/connection.py
-from config.config import settings
+from config import settings
 
 
 app = Celery(__name__)
@@ -252,13 +252,13 @@ SQLAlchemy используется асинхронный.
 
 ```python
 # Инициализация соединения с Базой Данных на текущий HTTP запрос
-async with db_helper.engine.begin() as conn:
+async with db_connection.engine.begin() as conn:
     await conn.run_sync(Base.metadata.create_all)
     yield # Событие HTTP запроса
-await db_helper.dispose()
+await db_connection.dispose()
 
 # "Протаскивание" текущей сессии для запросов к Базе данных на этот HTTP запрос
-async def get_session(session: AsyncSession = Depends(db_helper.session_geter)):
+async def get_session(session: AsyncSession = Depends(db_connection.session_geter)):
     current_session = session
     return session
 ```

@@ -4,11 +4,11 @@ from typing import Annotated
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api_v1.users.dependencies import get_user_by_id
 from .schemas import PostCreateSchema
 from .dependencies import get_post_by_id
 from . import crud
-from config.models import User, Post, db_helper
+from config.models import Post
+from config.database import db_connection
 
 
 router = APIRouter(tags=['Posts'],
@@ -26,7 +26,7 @@ async def get_post_api_view(post: Post = Depends(get_post_by_id)):
 @router.get('/',
             name='Список постов',
             )
-async def get_list_posts_api_view(session: AsyncSession = Depends(db_helper.session_geter)):
+async def get_list_posts_api_view(session: AsyncSession = Depends(db_connection.session_geter)):
     return await crud.get_list_posts(session=session)
 
 
@@ -38,7 +38,7 @@ async def create_post_api_view(attrs: PostCreateSchema,
                                user_id: Annotated[int,
                                                   Path(gt=1),
                                                   ],
-                               session: AsyncSession = Depends(db_helper.session_geter),
+                               session: AsyncSession = Depends(db_connection.session_geter),
                                ):
     return await crud.create_post(attrs=attrs,
                             user=user_id,

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from config.models.base import Base
-from config.models.db_helper import db_helper
+from config.database import db_connection
 from api_v1 import register_routers
 from app_includes import (
     register_errors,
@@ -23,10 +23,10 @@ def start_app() -> FastAPI:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with db_helper.engine.begin() as conn:
+    async with db_connection.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         yield
-    await db_helper.dispose()
+    await db_connection.dispose()
 
 
 app = start_app()

@@ -16,7 +16,7 @@ from api_v1.promos.dependencies import get_coupon_by_name
 from api_v1.orders.dependencies import get_order_by_user_and_coupone
 from config.models.promo import Coupon
 from config.models.user import User
-from config.config import settings
+from config import settings
 from .schemas import CouponeNameSchema
 
 
