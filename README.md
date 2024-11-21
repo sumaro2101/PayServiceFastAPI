@@ -177,7 +177,7 @@ celery_worker:
 ### Настройка Celery
 ```python
 # congin/rabbitmq/connection.py
-from config import settings
+from config.config import settings
 
 
 app = Celery(__name__)
@@ -252,13 +252,13 @@ SQLAlchemy используется асинхронный.
 
 ```python
 # Инициализация соединения с Базой Данных на текущий HTTP запрос
-async with db_connection.engine.begin() as conn:
+async with db_helper.engine.begin() as conn:
     await conn.run_sync(Base.metadata.create_all)
     yield # Событие HTTP запроса
-await db_connection.dispose()
+await db_helper.dispose()
 
 # "Протаскивание" текущей сессии для запросов к Базе данных на этот HTTP запрос
-async def get_session(session: AsyncSession = Depends(db_connection.session_geter)):
+async def get_session(session: AsyncSession = Depends(db_helper.session_geter)):
     current_session = session
     return session
 ```
@@ -277,8 +277,23 @@ STRIPE_API=some_stripe:api # API_KEY stripe платежная система
 Для получения API_KEY Stripe вам нужно перейти на официальную страницу Stripe [link](https://stripe.com)
 и зарегистрироваться, в последствии вы получите ключи для API.
 
+## Certifications
+- Перейдите в папку сертификатов
+```bash
+cd certs
+```
 
-## Docker Compose
+- Создание приватного ключа
+```bash
+openssl genrsa -out jwt-private.pem 2048
+```
+
+- Создание публичного ключа на основе приватного
+```bash
+openssl rsa -in jwt-private.pem -outform PEM -pubout -out jwt-public.pem
+```
+
+## Docker
 Проект находится под системой контеризации Docker
 Если у вас нет Docker, прейдите на официальную страницу Docker [link](https://www.docker.com)
 и скачайте от туда Docker (в случае если у вас система MAC, Windows, в ином установка посредством терминала).
