@@ -27,6 +27,7 @@ pytest = "^8.3.3"
 pytz = "^2024.2"
 celery = "^5.4.0"
 flower = "^2.0.1"
+prometheus-fastapi-instrumentator = "^7.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
