@@ -5,9 +5,11 @@ from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).parent.parent
 
-CERTS_DIR = BASE_DIR / 'certs'
+base_dir = Path(__file__).resolve().parent.parent
+log_dir = base_dir.joinpath('logs')
+
+CERTS_DIR = base_dir / 'certs'
 
 
 load_dotenv('.env')
@@ -63,6 +65,10 @@ class Settings(BaseSettings):
     FAIL_TOKEN_AUTH: str = 'Токен не валидный'
     AUTH_JWT: AuthJWT = AuthJWT()
     STRIPE: StripeSettings = StripeSettings()
+    API_PREFIX: str = '/api/v1'
+    BASE_DIR: Path = base_dir
+    LOG_DIR: Path = log_dir
+    CURRENT_ORIGIN: str = os.getenv('CURRENT_ORIGIN')
 
 
 settings = Settings()
