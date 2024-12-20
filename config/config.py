@@ -104,6 +104,7 @@ class Settings(BaseSettings):
     LOG_DIR: Path = log_dir
     CERTS_DIR: Path = certs_dir
     CURRENT_ORIGIN: str = config('CURRENT_ORIGIN')
+    API_BOT: str = config('API_BOT')
 
 
 settings = Settings()

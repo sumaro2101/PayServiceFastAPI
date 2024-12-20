@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Select, Result
+from sqlalchemy import Select
 from sqlalchemy.orm import joinedload, selectinload
 
 from .schemas import UserCreateSchema, UserUpdateSchema, ProfileCreateShema
