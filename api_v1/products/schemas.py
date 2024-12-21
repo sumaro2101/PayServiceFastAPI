@@ -21,7 +21,7 @@ class ProductUpdate(BaseModel):
 
     name: Union[str, None] = Field(default=None)
     description: Union[str, None] = Field(default=None)
-    price: Union[int, None] = Field(default=None)
+    price: Union[int, None] = Field(default=None, gt=0)
 
 
 class ProductCreate(ProductBase):
