@@ -1,11 +1,6 @@
 from fastapi_users.authentication.strategy import JWTStrategy
 from fastapi_users.jwt import generate_jwt
 
-from config import settings
-
-
-t_type = settings.AUTH_JWT.TOKEN_TYPE_FIELD
-
 
 class JWTStrategyWithEmail(JWTStrategy):
     """

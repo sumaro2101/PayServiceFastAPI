@@ -28,7 +28,9 @@ router = APIRouter(prefix='/users',
 @router.get('/',
             name='Список пользователей',
             )
-async def get_list_user_api_view(session: AsyncSession = Depends(db_connection.session_geter)):
+async def get_list_user_api_view(
+    session: AsyncSession = Depends(db_connection.session_geter),
+):
     return await UserDAO.find_all_items_by_args(
         session=session,
         one_to_many=(User.profile,),
@@ -41,10 +43,11 @@ async def get_list_user_api_view(session: AsyncSession = Depends(db_connection.s
              name='Создание профиля для пользователя',
              status_code=status.HTTP_201_CREATED,
              )
-async def profile_create_api_view(attrs: ProfileCreateShema,
-                                  user: User = Depends(active_user),
-                                  session: AsyncSession = Depends(db_connection.session_geter),
-                                  ):
+async def profile_create_api_view(
+    attrs: ProfileCreateShema,
+    user: User = Depends(active_user),
+    session: AsyncSession = Depends(db_connection.session_geter),
+):
     created_profile = await get_profile_by_id(
         user_id=user.id,
         session=session,
@@ -65,9 +68,10 @@ async def profile_create_api_view(attrs: ProfileCreateShema,
 @router.get('/profile',
             name='Получение профиля',
             )
-async def get_profile_api_view(user: User = Depends(active_user),
-                               session: AsyncSession = Depends(db_connection.session_geter),
-                               ):
+async def get_profile_api_view(
+    user: User = Depends(active_user),
+    session: AsyncSession = Depends(db_connection.session_geter),
+):
     return await get_profile_by_id(
         user_id=user.id,
         session=session,

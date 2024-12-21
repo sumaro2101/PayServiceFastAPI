@@ -8,11 +8,18 @@ from config.database import db_connection
 from . import crud
 
 
-async def get_product_by_id(product_id: Annotated[int,
-                                                  Path()],
-                            session: AsyncSession = Depends(db_connection.session_geter)) -> Product:
-    product = await crud.get_product(session=session,product_id=product_id)
+async def get_product_by_id(
+    product_id: Annotated[int,
+                          Path()],
+    session: AsyncSession = Depends(db_connection.session_geter),
+) -> Product:
+    product = await crud.get_product(
+        session=session,
+        product_id=product_id,
+        )
     if product:
         return product
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                         detail=f'Продукт {product_id} не был найден')
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f'Продукт {product_id} не был найден',
+        )

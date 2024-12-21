@@ -27,6 +27,7 @@ class BaseDAO:
             session = session,
             one_to_many = (Model.tag,),
             many_to_many = (Model.users, Model.stations,)
+            order_by = (Model.id,)
             name='model',
         )
         # Создание сущности
@@ -43,8 +44,9 @@ class BaseDAO:
                                 session: AsyncSession,
                                 one_to_many: Sequence[Base] | None = None,
                                 many_to_many: Sequence[Base] | None = None,
+                                order_by: Sequence[Base] | None = None,
                                 **kwargs: dict[str, str | int],
-                                ) -> Base:
+                                ) -> Base | None:
         """
         Нахождение и возращение сущности
 
@@ -66,6 +68,7 @@ class BaseDAO:
             model=cls.model,
             one_to_many=one_to_many,
             many_to_many=many_to_many,
+            order_by=order_by,
             **kwargs,
         )
         result = await session.scalar(statement=stmt)
@@ -76,8 +79,9 @@ class BaseDAO:
                                      session: AsyncSession,
                                      one_to_many: Sequence[Base] | None = None,
                                      many_to_many: Sequence[Base] | None = None,
+                                     order_by: Sequence[Base] | None = None,
                                      **kwargs: dict[str, str | int],
-                                     ) -> list[Base]:
+                                     ) -> list[Base] | None:
         """
         Нахождение и возращение множества сущностей
 
@@ -99,6 +103,7 @@ class BaseDAO:
             model=cls.model,
             one_to_many=one_to_many,
             many_to_many=many_to_many,
+            order_by=order_by,
             **kwargs,
         )
         result = await session.scalars(statement=stmt)
@@ -142,6 +147,7 @@ class BaseDAO:
 def struct_options_statment(model: Base,
                             one_to_many: Sequence[Base] | None = None,
                             many_to_many: Sequence[Base] | None = None,
+                            order_by: Sequence[Base] | None = None,
                             **kwargs: dict[str, str | int],
                             ) -> Select:
     """
@@ -164,11 +170,13 @@ def struct_options_statment(model: Base,
     stms_one_to_many = ([selectinload(join) for join in list(one_to_many)]
                         if one_to_many
                         else list())
-    stmt_any_to_many = ([joinedload(join)for join in list(many_to_many)]
+    stmt_any_to_many = ([joinedload(join) for join in list(many_to_many)]
                         if many_to_many
                         else list())
+    stmt_order_by = list(order_by) if order_by else list()
     stmt = (Select(model)
             .filter_by(**kwargs)
             .options(*stms_one_to_many)
-            .options(*stmt_any_to_many))
+            .options(*stmt_any_to_many)
+            .order_by(*stmt_order_by))
     return stmt

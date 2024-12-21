@@ -10,7 +10,7 @@ class ProductBase(BaseModel):
 
     name: str
     description: str
-    price: int
+    price: int = Field(gt=0)
     is_active: bool
 
 
