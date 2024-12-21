@@ -9,6 +9,7 @@ from config.models import User
 from config.database import db_connection
 from .schemas import ProfileCreateShema
 from . import crud
+from .dao import UserDAO
 from .dependencies import get_profile_by_id
 from api_v1.auth import auth_backend, active_user
 
@@ -28,7 +29,11 @@ router = APIRouter(prefix='/users',
             name='Список пользователей',
             )
 async def get_list_user_api_view(session: AsyncSession = Depends(db_connection.session_geter)):
-    return await crud.get_list_users(session=session)
+    return await UserDAO.find_all_items_by_args(
+        session=session,
+        one_to_many=(User.profile,),
+        many_to_many=(User.orders, User.coupons),
+    )
 
 
 # profile

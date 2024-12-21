@@ -10,8 +10,8 @@ from .user_manager import get_user_manager
 
 
 async def get_profile_by_id(user_id: Annotated[int,
-                                                  Path(),
-                                                  ],
+                                               Path(),
+                                               ],
                             session: AsyncSession,
                             ) -> User:
     """
