@@ -23,7 +23,7 @@ async def get_profile_by_id(user_id: Annotated[int,
     if profile:
         return profile
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f'Профиль {user_id} не был найден',
+                        detail=f'Profile {user_id} not found',
                         )
 
 
@@ -35,4 +35,6 @@ async def get_user_or_404(
         parsed_id = user_manager.parse_id(id)
         return await user_manager.get(parsed_id)
     except (exceptions.UserNotExists, exceptions.InvalidID) as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND) from e
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail='User not found',
+                            ) from e

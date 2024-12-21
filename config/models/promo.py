@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 class Coupon(Base):
     """
     Модель скидочного купона
-    """    
+    """
+
     number: Mapped[str] = mapped_column(unique=True)
     discount: Mapped[float]
     description: Mapped[str] = EMPTY_TEXT_DEFAULT()

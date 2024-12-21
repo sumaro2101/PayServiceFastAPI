@@ -10,7 +10,6 @@ from config.database import db_connection
 from .schemas import ProfileCreateShema
 from . import crud
 from .dependencies import get_profile_by_id
-from .exceptions import ProfileAlreadyExists
 from api_v1.auth import auth_backend, active_user
 
 
