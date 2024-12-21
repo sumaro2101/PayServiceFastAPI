@@ -4,7 +4,6 @@ from sqlalchemy.orm import joinedload
 
 from fastapi import HTTPException, status
 
-from loguru import logger
 from config.models import User, Basket, Order
 from api_stripe.api import ExpireSession
 

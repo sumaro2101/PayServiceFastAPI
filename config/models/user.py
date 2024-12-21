@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 from fastapi_users.db import SQLAlchemyBaseUserTable
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy import String
-from sqlalchemy.types import LargeBinary
 from sqlalchemy import Integer
 
 from config.models import Base
@@ -21,13 +20,13 @@ if TYPE_CHECKING:
 class User(SQLAlchemyBaseUserTable[int], Base):
     """Модель пользователя
     """
+
+    __tablename__ = 'users'
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(50), unique=True)
-    email: Mapped[str] = mapped_column(unique=True)
     phone: Mapped[str] = mapped_column(nullable=True)
     create_date: Mapped[datetime] = ADD_NOW_TIME()
-    password: Mapped[str] = mapped_column(LargeBinary)
-    active: Mapped[bool] = mapped_column(default=True)
 
     posts: Mapped[list['Post']] = relationship(back_populates='user')
     profile: Mapped['Profile'] = relationship(back_populates='user')

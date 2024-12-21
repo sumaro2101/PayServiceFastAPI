@@ -1,11 +1,5 @@
-from pydantic import BaseModel
+from datetime import datetime
 from fastapi_users import schemas
-
-
-class TokenInfo(BaseModel):
-    access_token: str
-    refresh_token: str | None = None
-    token_type: str = 'Bearer'
 
 
 class UserRead(schemas.BaseUser[int]):
@@ -14,8 +8,9 @@ class UserRead(schemas.BaseUser[int]):
     При добавлении полей в модель, так же
     необходимо добавить поля - тут!
     """
-
-    pass
+    username: str
+    phone: str
+    create_date: datetime
 
 
 class UserCreate(schemas.BaseUserCreate):
@@ -24,8 +19,8 @@ class UserCreate(schemas.BaseUserCreate):
     При добавлении полей в модель, так же
     необходимо добавить поля - тут!
     """
-
-    pass
+    username: str
+    phone: str | None
 
 
 class UserUpdate(schemas.BaseUserUpdate):
@@ -34,5 +29,5 @@ class UserUpdate(schemas.BaseUserUpdate):
     При добавлении полей в модель, так же
     необходимо добавить поля - тут!
     """
-
-    pass
+    username: str | None
+    phone: str | None

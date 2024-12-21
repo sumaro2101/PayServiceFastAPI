@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .mixins import ActionUserManagerMixin, PasswordValidationMixin
 from config.models import User
 from config import settings
-from config import db_connection
+from config.database import db_connection
 
 
 class UserManager(ActionUserManagerMixin,

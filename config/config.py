@@ -19,6 +19,16 @@ class StripeSettings(BaseModel):
     API_KEY: str = config('STRIPE_API')
 
 
+class JWTSettings(BaseModel):
+    """
+    Настройки JWT токена
+    """
+    NAME: str = 'jwt'
+    SECRET: str = config('SECRET_KEY')
+    RESET_LIFESPAN_TOKEN_SECONDS: int = 3600
+    JWT_PATH: str = '/auth'
+
+
 class RabbitSettings(BaseModel):
     """
     Настройки RabbitMQ
@@ -94,6 +104,7 @@ class Settings(BaseSettings):
     db: DBSettings = DBSettings()
     test_db: TestDBSettings = TestDBSettings()
     rabbit: RabbitSettings = RabbitSettings()
+    JWT: JWTSettings = JWTSettings()
     debug: bool = bool(int(config('DEBUG')))
     FAIL_BASIC_AUTH: str = 'Не верный логин или пароль'
     FAIL_TOKEN_AUTH: str = 'Токен не валидный'

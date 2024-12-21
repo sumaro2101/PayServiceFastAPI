@@ -16,3 +16,11 @@ class UserNotVerified(FastAPIUsersException):
     """
 
     pass
+
+
+class ProfileAlreadyExists(FastAPIUsersException):
+    """
+    Исключение уже созданного профиля
+    """
+
+    pass

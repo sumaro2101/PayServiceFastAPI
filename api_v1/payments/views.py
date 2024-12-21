@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.models import User
 from config.database import db_connection
-from api_v1.auth.auth_validators import get_user_by_hash
+from .dependencies import get_user_by_hash
 from . import crud
 
 

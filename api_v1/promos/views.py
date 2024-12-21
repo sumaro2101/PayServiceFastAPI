@@ -10,7 +10,8 @@ from .schemas import (CouponViewSchema,
                       CouponAddCountUser,
                       )
 from . import crud
-from api_v1.users.dependencies import get_user_by_id
+from api_v1.auth.permissions import superuser
+from api_v1.users.dependencies import get_user_or_404
 from .dependencies import get_coupon_by_name
 from config.database import db_connection
 from config.models import Coupon, User
@@ -31,6 +32,7 @@ router = APIRouter(prefix='/coupons',
             status_code=status.HTTP_201_CREATED,
             )
 async def create_coupone(coupon_schema: CouponSchemaCreate,
+                         superuser: User = Depends(superuser),
                          session: AsyncSession = Depends(db_connection.session_geter),
                          ):
     return await crud.create_coupon(
@@ -44,7 +46,9 @@ async def create_coupone(coupon_schema: CouponSchemaCreate,
             description='Получение списка купонов',
             response_model=list[CouponViewSchema],
             )
-async def get_list_promos(session: AsyncSession = Depends(db_connection.session_geter)):
+async def get_list_promos(session: AsyncSession = Depends(db_connection.session_geter),
+                          superuser: User = Depends(superuser),
+                          ):
     return await crud.get_list_promos(session=session)
 
 
@@ -53,9 +57,10 @@ async def get_list_promos(session: AsyncSession = Depends(db_connection.session_
               response_model=CouponSchema,
               )
 async def update_coupon(coupon_schema: CouponSchemaUpdate,
-                         coupon: Coupon = Depends(get_coupon_by_name),
-                         session: AsyncSession = Depends(db_connection.session_geter),
-                         ):
+                        superuser: User = Depends(superuser),
+                        coupon: Coupon = Depends(get_coupon_by_name),
+                        session: AsyncSession = Depends(db_connection.session_geter),
+                        ):
     return await crud.update_coupon(
         coupon_schema=coupon_schema,
         stripe_action=UpdateDiscountCoupon,
@@ -67,7 +72,9 @@ async def update_coupon(coupon_schema: CouponSchemaUpdate,
             description='Получение купона',
             response_model=CouponViewSchema,
             )
-async def get_coupon(coupon: Coupon = Depends(get_coupon_by_name)):
+async def get_coupon(coupon: Coupon = Depends(get_coupon_by_name),
+                     superuser: User = Depends(superuser),
+                     ):
     return coupon
 
 
@@ -76,6 +83,7 @@ async def get_coupon(coupon: Coupon = Depends(get_coupon_by_name)):
               response_model=ActivityCouponeSchema,
               )
 async def activate_coupon(coupon: Coupon = Depends(get_coupon_by_name),
+                          superuser: User = Depends(superuser),
                           session: AsyncSession = Depends(db_connection.session_geter),
                           ):
     return await crud.activate_coupon(
@@ -89,6 +97,7 @@ async def activate_coupon(coupon: Coupon = Depends(get_coupon_by_name),
               response_model=ActivityCouponeSchema,
               )
 async def deactivate_coupon(coupon: Coupon = Depends(get_coupon_by_name),
+                            superuser: User = Depends(superuser),
                             session: AsyncSession = Depends(db_connection.session_geter),
                             ):
     return await crud.deactivate_coupon(
@@ -102,6 +111,7 @@ async def deactivate_coupon(coupon: Coupon = Depends(get_coupon_by_name),
                status_code=status.HTTP_204_NO_CONTENT,
                )
 async def delele_coupon(coupon: Coupon = Depends(get_coupon_by_name),
+                        superuser: User = Depends(superuser),
                         session: AsyncSession = Depends(db_connection.session_geter),
                         ) -> None:
     return await crud.delete_coupon(
@@ -116,6 +126,7 @@ async def delele_coupon(coupon: Coupon = Depends(get_coupon_by_name),
               response_model=CouponAddCountUser,
               )
 async def gift_all_active_users(coupon: Coupon = Depends(get_coupon_by_name),
+                                superuser: User = Depends(superuser),
                                 session: AsyncSession = Depends(db_connection.session_geter),
                                 ):
     return await crud.gift_to_all_active_users(
@@ -128,8 +139,9 @@ async def gift_all_active_users(coupon: Coupon = Depends(get_coupon_by_name),
               description='Дать купон пользователю',
               response_model=CouponViewSchema,
               )
-async def gift_coupone_to_user(user: User = Depends(get_user_by_id),
+async def gift_coupone_to_user(user: User = Depends(get_user_or_404),
                                coupon: Coupon = Depends(get_coupon_by_name),
+                               superuser: User = Depends(superuser),
                                session: AsyncSession = Depends(db_connection.session_geter),
                                ):
     return await crud.gift_to_user(
@@ -144,8 +156,9 @@ async def gift_coupone_to_user(user: User = Depends(get_user_by_id),
               response_model=CouponAddCountUser,
               )
 async def remove_coupon_all_user(coupon: Coupon = Depends(get_coupon_by_name),
-                                session: AsyncSession = Depends(db_connection.session_geter),
-                                ):
+                                 superuser: User = Depends(superuser),
+                                 session: AsyncSession = Depends(db_connection.session_geter),
+                                 ):
     return await crud.remove_all_coupons_from_users(
         coupon=coupon,
         session=session,
@@ -156,10 +169,11 @@ async def remove_coupon_all_user(coupon: Coupon = Depends(get_coupon_by_name),
               description='Забрать купон у пользователя',
               response_model=CouponViewSchema,
               )
-async def gift_coupone_to_user(user: User = Depends(get_user_by_id),
-                               coupon: Coupon = Depends(get_coupon_by_name),
-                               session: AsyncSession = Depends(db_connection.session_geter),
-                               ):
+async def remove_coupone_from_user(user: User = Depends(get_user_or_404),
+                                   superuser: User = Depends(superuser),
+                                   coupon: Coupon = Depends(get_coupon_by_name),
+                                   session: AsyncSession = Depends(db_connection.session_geter),
+                                   ):
     return await crud.remove_from_user(
         user=user,
         coupon=coupon,
