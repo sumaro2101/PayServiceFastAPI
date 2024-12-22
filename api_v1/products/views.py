@@ -19,13 +19,21 @@ router = APIRouter(prefix='/products',
 
 
 @router.post('/create',
-             name='Создание продукта',
+             name='products:create',
              response_model=Product,
              status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(superuser)],
+             responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                 },
+             },
              )
 async def create_product_api_view(
     product: ProductCreate,
-    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.product_create(session=session,
