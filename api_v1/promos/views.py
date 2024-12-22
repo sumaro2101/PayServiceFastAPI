@@ -11,7 +11,7 @@ from .schemas import (CouponViewSchema,
                       CouponAddCountUser,
                       )
 from . import crud
-from api_v1.auth.permissions import superuser
+from api_v1.auth.permissions import superuser, active_user
 from .dependencies import get_coupon_by_name
 from .common import ErrorCode
 from config.database import db_connection
@@ -65,12 +65,20 @@ async def create_coupone(
 
 
 @router.get(path='/list',
-            description='Получение списка купонов',
-            response_model=list[CouponViewSchema],
+            name='coupons:list_coupons',
+            response_model=list[CouponSchema],
+            dependencies=[Depends(superuser)],
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                },
+                status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                },
+            }
             )
 async def get_list_promos(
     session: AsyncSession = Depends(db_connection.session_geter),
-    superuser: User = Depends(superuser),
 ):
     return await crud.get_list_promos(session=session)
 

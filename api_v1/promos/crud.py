@@ -17,7 +17,6 @@ from api_v1.promos.tasks import (
 async def get_list_promos(session: AsyncSession) -> list[Coupon]:
     return await PromoDAO.find_all_items_by_args(
         session=session,
-        one_to_many=(Coupon.users,),
     )
 
 
