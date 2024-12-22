@@ -84,12 +84,35 @@ async def get_list_promos(
 
 
 @router.patch(path='/update/{coupon_name}',
-              description='Обновление купона',
+              name='coupons:patch_coupon',
               response_model=CouponSchema,
+              dependencies=[Depends(active_user)],
+              responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_WITH_SOME_NAME_EXISTS: {
+                                      'summary': 'Coupon is have same name with another',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_WITH_SOME_NAME_EXISTS,
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
               )
 async def update_coupon(
     coupon_schema: CouponSchemaUpdate,
-    superuser: User = Depends(superuser),
     coupon: Coupon = Depends(get_coupon_by_name),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):

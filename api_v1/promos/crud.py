@@ -48,10 +48,16 @@ async def update_coupon(coupon_schema: CouponSchemaUpdate,
                         session: AsyncSession,
                         ) -> Coupon:
     update_schema = coupon_schema.model_dump(exclude_unset=True)
-    if not update_schema:
+    if not update_schema or coupon.number == coupon_schema.number:
+        return coupon
+    created_coupon = await PromoDAO.find_item_by_args(
+        session=session,
+        number=coupon_schema.number,
+    )
+    if created_coupon:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(coupon='Body mast have no less one field'),
+            detail=ErrorCode.COUPON_WITH_SOME_NAME_EXISTS,
             )
     coupon = await PromoDAO.update(
         session=session,
