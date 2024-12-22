@@ -1,11 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import status, HTTPException
-from loguru import logger
 
 from api_stripe.abs import Stripe
 from config.models.user import User
 from .schemas import CouponSchemaCreate, CouponSchemaUpdate
 from .dao import PromoDAO
+from .common import ErrorCode
 from config.models import Coupon
 from api_v1.users.dao import UserDAO
 from api_v1.promos.tasks import (
@@ -32,9 +32,8 @@ async def create_coupon(coupon_schema: CouponSchemaCreate,
     if created_coupon:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Coupon is already exists',
+            detail=ErrorCode.COUPON_IS_ALREADY_EXISTS,
             )
-    logger.info(f'time end_at = {coupon_schema.end_at}')
     coupon_schema.end_at = coupon_schema.end_at.replace(tzinfo=None)
     coupon = await PromoDAO.add(
         session=session,

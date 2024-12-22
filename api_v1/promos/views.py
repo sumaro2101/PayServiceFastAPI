@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, status, Depends
+from fastapi_users.router.common import ErrorModel
 
 from .schemas import (CouponViewSchema,
                       CouponSchema,
@@ -12,6 +13,7 @@ from .schemas import (CouponViewSchema,
 from . import crud
 from api_v1.auth.permissions import superuser
 from .dependencies import get_coupon_by_name
+from .common import ErrorCode
 from config.database import db_connection
 from config.models import Coupon, User
 from api_stripe.api import (CreateDiscountCoupon)
@@ -22,14 +24,37 @@ router = APIRouter(prefix='/coupons',
                    )
 
 
-@router.put(path='/create',
-            description='Создания купона',
-            response_model=CouponSchema,
-            status_code=status.HTTP_201_CREATED,
-            )
+@router.post(path='/create',
+             name='coupons:create_coupon',
+             response_model=CouponSchema,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(superuser)],
+             responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+                 status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_IS_ALREADY_EXISTS: {
+                                      'summary': 'Coupon already exists in system',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_IS_ALREADY_EXISTS,
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+             },
+             )
 async def create_coupone(
     coupon_schema: CouponSchemaCreate,
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.create_coupon(
