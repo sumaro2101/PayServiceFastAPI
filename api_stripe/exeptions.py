@@ -10,7 +10,13 @@ class MultipleChoiseParamsError(Exception):
     """
 
 
-class DoNotFindIDProductError(Exception):
+class NotFindInputError(Exception):
     """
     Исключение не найденого ID
+    """
+
+
+class NotCorrectInputType(Exception):
+    """
+    Исключение не правильных входящих параметров
     """

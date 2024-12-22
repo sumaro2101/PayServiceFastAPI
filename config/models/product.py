@@ -1,22 +1,15 @@
 from typing import TYPE_CHECKING
 from sqlalchemy.orm import Mapped, relationship, mapped_column
-from sqlalchemy import func
-
-from functools import partial
 
 from datetime import datetime
 
 from config.models import Base
+from .utils import ADD_NOW_TIME
 
 if TYPE_CHECKING:
     from .order import Order
     from .basket import Basket
 
-
-ADD_NOW_TIME = partial(mapped_column,
-                       insert_default=func.now(),
-                       server_default=func.now(),
-                       )
 
 
 class Product(Base):

@@ -1,30 +1,34 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Select
-from sqlalchemy.orm import joinedload
 
-from config.models import Post, User
+from config.models import Post
 from .schemas import PostCreateSchema
+from .dao import PostDAO
 
 
 async def get_post(post_id: int,
                    session: AsyncSession) -> Post:
-    stmt = Select(Post).where(Post.id == post_id).options(joinedload(Post.user).joinedload(User.profile))
-    return await session.scalar(stmt)
+    return await PostDAO.find_item_by_args(
+        session=session,
+        one_to_many=(Post.user,),
+        id=post_id,
+    )
 
 
 async def get_list_posts(session: AsyncSession) -> list[Post]:
-    stmt = Select(Post).options(joinedload(Post.user)).order_by(Post.id)
-    posts = await session.scalars(stmt)
-    return list(posts)
+    return await PostDAO.find_all_items_by_args(
+        session=session,
+        one_to_many=(Post.user,),
+        order_by=(Post.id,),
+    )
 
 
 async def create_post(attrs: PostCreateSchema,
                       user: int,
                       session: AsyncSession,
                       ) -> Post:
-    post = Post(user_id=user,
-                **attrs.model_dump(),
-                )
-    session.add(post)
-    await session.commit()
+    post = await PostDAO.add(
+        session=session,
+        user_id=user,
+        **attrs.model_dump(),
+    )
     return post

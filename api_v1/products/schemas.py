@@ -10,7 +10,7 @@ class ProductBase(BaseModel):
 
     name: str
     description: str
-    price: int
+    price: int = Field(gt=0)
     is_active: bool
 
 
@@ -21,7 +21,7 @@ class ProductUpdate(BaseModel):
 
     name: Union[str, None] = Field(default=None)
     description: Union[str, None] = Field(default=None)
-    price: Union[int, None] = Field(default=None)
+    price: Union[int, None] = Field(default=None, gt=0)
 
 
 class ProductCreate(ProductBase):
@@ -38,3 +38,12 @@ class Product(ProductBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+
+class ActivityProductSchema(BaseModel):
+    """
+    Схема активности продукта
+    """
+    id: int
+    price: int
+    is_active: bool

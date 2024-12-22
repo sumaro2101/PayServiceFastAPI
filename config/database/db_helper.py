@@ -4,16 +4,35 @@ from sqlalchemy.ext.asyncio import (create_async_engine,
                                     AsyncSession,
                                     )
 from asyncio import current_task
+from sqlalchemy.pool import Pool
+from typing import Any, AsyncGenerator
 
-from config.config import settings
+from config import settings
+
+
+DATA_BASE_URL = settings.db.url
 
 
 class DataBaseHelper:
+    """
+    Вспомогательный класс для работы с базой данных
+    """
 
-    def __init__(self) -> None:
-        self.engine = create_async_engine(
-            url=settings.db.url,
+    def __init__(self,
+                 db_url: str = DATA_BASE_URL,
+                 poolclass: Pool | None = None,
+                 ) -> None:
+        self._db_url = db_url
+        setup = dict(
+            url=self._db_url,
             echo=settings.debug,
+        )
+        if poolclass:
+            setup.update(
+                poolclass=poolclass,
+            )
+        self.engine = create_async_engine(
+            **setup
         )
         self.session = async_sessionmaker(
             bind=self.engine,
@@ -32,10 +51,11 @@ class DataBaseHelper:
         )
         return session
 
-    async def session_geter(self) -> AsyncSession:
+    async def session_geter(self) -> AsyncGenerator[AsyncSession, Any]:
         session = self.get_scoped_session()
         yield session
         await session.remove()
 
 
 db_helper = DataBaseHelper()
+db_test = DataBaseHelper

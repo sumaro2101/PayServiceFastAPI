@@ -1,30 +1,29 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-import aio_pika
-from config.models.base import Base
-from config.models.db_helper import db_helper
-from config.rabbitmq.connection import mq_connect
-from api_v1 import router
-import asyncio
+
+from api_v1 import register_routers
+from app_includes import (
+    register_errors,
+    register_middlewares,
+    register_prometheus,
+)
+
+
+def start_app() -> FastAPI:
+    """
+    Создание приложения со всеми настройками
+    """
+    app = FastAPI(lifespan=lifespan)
+    register_routers(app=app)
+    register_errors(app=app)
+    register_middlewares(app=app)
+    register_prometheus(app=app)
+    return app
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with db_helper.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        # loop = asyncio.get_running_loop()
-        # task = loop.create_task(mq_connect.consume(loop))
-        # await task
-        yield
-    await db_helper.dispose()
+    yield
 
 
-app = FastAPI(lifespan=lifespan)
-app.include_router(router)
-
-
-@app.get('/')
-def hello_index():
-    return {
-        'message': 'Hello index!',
-    }
+app = start_app()

@@ -8,10 +8,11 @@ from binascii import Error as BinasciiError
 
 from loguru import logger
 
-from config.config import settings
+from config import settings
 from config.models.user import User
 from .exeptions import InvalidAlgorithm
 from .types import is_protected_type
+from .utils import base36_to_int, int_to_base36
 
 
 class UserPathHasher:
@@ -26,44 +27,12 @@ class UserPathHasher:
         self._user = user
         self.algorithm = 'sha256'
 
-    def int_to_base36(self, i):
-        """Convert an integer to a base36 string."""
-        char_set = "0123456789abcdefghijklmnopqrstuvwxyz"
-        if i < 0:
-            raise ValueError("Negative base36 conversion input.")
-        if i < 36:
-            return char_set[i]
-        b36 = ""
-        while i != 0:
-            i, n = divmod(i, 36)
-            b36 = char_set[n] + b36
-        return b36
-
-    def base36_to_int(self, s):
-        """
-        Convert a base 36 string to an int. Raise ValueError if the input won't fit
-        into an int.
-        """
-        # To prevent overconsumption of server resources, reject any
-        # base36 string that is longer than 13 base36 digits (13 digits
-        # is sufficient to base36-encode any 64-bit integer)
-        if len(s) > 13:
-            raise ValueError("Base36 input too large")
-        return int(s, 36)
-
     def _force_bytes(self,
                      s,
                      encoding="utf-8",
                      strings_only=False,
                      errors="strict",
                      ):
-        """
-        Similar to smart_bytes, except that lazy instances are resolved to
-        strings, rather than kept as lazy objects.
-
-        If strings_only is True, don't convert (some) non-string-like objects.
-        """
-        # Handle the common case first for performance reasons.
         if isinstance(s, bytes):
             if encoding == "utf-8":
                 return s
@@ -100,13 +69,7 @@ class UserPathHasher:
             raise InvalidAlgorithm(
                 "%r is not an algorithm accepted by the hashlib module." % algorithm
             ) from e
-        # We need to generate a derived key from our base key.  We can do this by
-        # passing the key_salt and our base key through a pseudo-random function.
         key = hasher(key_salt + secret).digest()
-        # If len(key_salt + secret) > block size of the hash algorithm, the above
-        # line is redundant and could be replaced by key = key_salt + secret, since
-        # the hmac module does the same thing for keys longer than the block size.
-        # However, we need to ensure that we *always* do this.
         return hmac.new(key, msg=self._force_bytes(value), digestmod=hasher)
 
     def _make_token_with_timestamp(self,
@@ -114,9 +77,7 @@ class UserPathHasher:
                                    timestamp,
                                    secret,
                                    ):
-        # timestamp is number of seconds since 2001-1-1. Converted to base 36,
-        # this gives us a 6 digit string until about 2069.
-        ts_b36 = self.int_to_base36(timestamp)
+        ts_b36 = int_to_base36(timestamp)
         hash_string = self._salted_hmac(
             self.__key_salt,
             self._make_hash_value(user, timestamp),
@@ -145,10 +106,8 @@ class UserPathHasher:
         Running this data through salted_hmac() prevents password cracking
         attempts using the reset token, provided the secret isn't compromised.
         """
-        # Truncate microseconds so that tokens are consistent even if the
-        # database doesn't support microseconds.
         login_timestamp = user.create_date
-        return f"{user.id}{user.password}{login_timestamp}{timestamp}{user.email}"
+        return f"{user.id}{user.hashed_password}{login_timestamp}{timestamp}{user.email}"
 
     def _constant_time_compare(self, val1, val2):
         """Return True if the two strings are equal, False otherwise."""
@@ -191,7 +150,7 @@ class UserPathHasher:
             self._num_seconds(self._now()),
             self.__secret_key,
         )
-        return f'{uid}/{token}/'
+        return f'{uid}/{token}'
 
     def check_token(self, token):
         """
@@ -209,7 +168,7 @@ class UserPathHasher:
             return False
 
         try:
-            ts = self.base36_to_int(ts_b36)
+            ts = base36_to_int(ts_b36)
             logger.info(f'ts = {ts}')
         except ValueError:
             return False
@@ -221,8 +180,8 @@ class UserPathHasher:
             return False
 
         # Check the timestamp is within limit.
-        if (self._num_seconds(self._now()) - ts) > settings.LIFESPAN_TOKEN:
-            return False
+        # if (self._num_seconds(self._now()) - ts) > settings.LIFESPAN_TOKEN:
+        #     return False
 
         return True
 
