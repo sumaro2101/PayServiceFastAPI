@@ -281,13 +281,63 @@ async def gift_all_active_users(
 
 
 @router.patch(path='/gift/{user_id}/{coupon_name}',
-              description='Дать купон пользователю',
+              name='coupons:gift_to_user',
               response_model=CouponViewSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_400_BAD_REQUEST: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_IS_UNACTIVE: {
+                                      'summary': 'Coupon not active',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_IS_UNACTIVE,
+                                      }
+                                  },
+                                  ErrorCode.USER_HAVE_COUPON_YET: {
+                                      'summary': 'User have coupon yet',
+                                      'value': {
+                                          'detail': ErrorCode.USER_HAVE_COUPON_YET,
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon not found',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
+                                  ErrorCode.USER_NOT_FOUND: {
+                                      'summary': 'User not found',
+                                      'value': {
+                                          'detail': ErrorCode.USER_NOT_FOUND,
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
+                },
               )
 async def gift_coupone_to_user(
     user_id: int,
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.gift_to_user(
