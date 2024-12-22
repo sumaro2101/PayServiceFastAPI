@@ -11,7 +11,7 @@ from .schemas import ProfileCreateShema
 from . import crud
 from .dao import UserDAO
 from .dependencies import get_profile_by_id
-from api_v1.auth import auth_backend, active_user
+from api_v1.auth import auth_backend, active_user, superuser
 
 
 fastapi_users = FastAPIUsers[User, int](
@@ -29,6 +29,7 @@ router = APIRouter(prefix='/users',
             name='Список пользователей',
             )
 async def get_list_user_api_view(
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await UserDAO.find_all_items_by_args(
