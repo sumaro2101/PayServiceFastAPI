@@ -9,7 +9,6 @@ from .schemas import (Product,
                       )
 from api_v1.auth.permissions import superuser
 from config.database import db_connection
-from config.models import User
 from .dependencies import get_product_by_id
 
 
@@ -125,7 +124,7 @@ async def deactivate_product_api_view(
 
 
 @router.get('/list',
-            name='Получение списка продуктов',
+            name='products:list',
             response_model=list[Product],
             )
 async def list_products_api_view(
@@ -135,8 +134,13 @@ async def list_products_api_view(
 
 
 @router.get('/{product_id}',
-            name='Получение продукта',
+            name='products:get',
             response_model=Product,
+            responses={
+                 status.HTTP_404_NOT_FOUND: {
+                     "description": "Product not found.",
+                 },
+              },
             )
 async def product_api_view(
     product: Product = Depends(get_product_by_id),
