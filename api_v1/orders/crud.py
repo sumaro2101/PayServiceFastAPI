@@ -6,7 +6,7 @@ from config.models import Order
 from .schemas import OrderCreateSchema, OrderUpdateSchema
 from .utils import get_list_orders_to_append
 from .dao import OrderDAO
-from api_v1.promos.dependencies import get_coupon_by_name
+from api_v1.promos.dao import PromoDAO
 
 
 async def get_order_by_user_and_coupone(
@@ -38,9 +38,9 @@ async def create_order(session: AsyncSession,
                        ) -> Order:
     coupon_id = None
     if order_schema.promocode:
-        coupon = await get_coupon_by_name(
-            coupon_name=order_schema.promocode,
+        coupon = await PromoDAO.find_item_by_args(
             session=session,
+            number=order_schema.promocode,
         )
         coupon_id = coupon.id
     order = await OrderDAO.add(

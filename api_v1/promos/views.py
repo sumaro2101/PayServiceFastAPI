@@ -104,7 +104,13 @@ async def get_list_promos(
                                       'value': {
                                           'detail': ErrorCode.COUPON_WITH_SOME_NAME_EXISTS,
                                       }
-                                  }
+                                  },
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon is not found in system',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
                               }
                           }
                       }
