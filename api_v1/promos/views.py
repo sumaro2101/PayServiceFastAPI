@@ -242,7 +242,7 @@ async def deactivate_coupon(
                    status.HTTP_404_NOT_FOUND: {
                         "description": 'Coupone not found',
                    },
-                   },
+                },
                )
 async def delele_coupon(
     coupon: Coupon = Depends(get_coupon_by_name),
@@ -255,12 +255,23 @@ async def delele_coupon(
 
 
 @router.patch(path='/gift/all/{coupon_name}',
-              description='Дать купон всем активным пользователям',
+              name='coupons:gift_all',
               response_model=CouponAddCountUser,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                   },
+                },
               )
 async def gift_all_active_users(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.gift_to_all_active_users(
