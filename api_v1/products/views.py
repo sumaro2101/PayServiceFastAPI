@@ -69,12 +69,26 @@ async def update_product_api_view(
 
 
 @router.patch('/{product_id}/activate',
-              name='Активация продукта',
+              name='products:activate',
               response_model=ActivityProductSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                 status.HTTP_400_BAD_REQUEST: {
+                     "description": "Product is already active.",
+                 },
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+                 status.HTTP_404_NOT_FOUND: {
+                     "description": "Product not found.",
+                 },
+              },
               )
 async def activate_product_api_view(
     product: Product = Depends(get_product_by_id),
-    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.product_activate(session=session,

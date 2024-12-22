@@ -8,6 +8,7 @@ from config.models.product import Product
 from .schemas import ProductCreate, ProductUpdate
 from .utils import add_params
 from .dao import ProductDAO
+from .common import ErrorCode
 from api_v1.products.tasks import (
     create_stripe_item_task,
     update_stripe_item_task,
@@ -87,7 +88,7 @@ async def product_activate(session: AsyncSession,
     if product.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(product='This product is already active'),
+            detail=ErrorCode.PRODUCT_ALREADY_ACTIVE,
             )
     product.is_active = True
     await session.commit()
