@@ -17,6 +17,7 @@ class StripeSettings(BaseModel):
     """
 
     API_KEY: str = config('STRIPE_API')
+    STRIPE_ORIGIN: str = config('STRIPE_ORIGIN')
 
 
 class JWTSettings(BaseModel):
@@ -91,8 +92,6 @@ class Settings(BaseSettings):
     rabbit: RabbitSettings = RabbitSettings()
     JWT: JWTSettings = JWTSettings()
     debug: bool = bool(int(config('DEBUG')))
-    FAIL_BASIC_AUTH: str = 'Не верный логин или пароль'
-    FAIL_TOKEN_AUTH: str = 'Токен не валидный'
     STRIPE: StripeSettings = StripeSettings()
     API_PREFIX: str = '/api/v1'
     BASE_DIR: Path = base_dir

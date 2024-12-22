@@ -21,7 +21,7 @@ async def get_post_api_view(post: Post = Depends(get_post_by_id)):
     return post
 
 
-@router.get('/',
+@router.get('',
             name='Список постов',
             )
 async def get_list_posts_api_view(

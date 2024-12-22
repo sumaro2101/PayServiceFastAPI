@@ -188,15 +188,18 @@ async def add_product_basket(basket: Basket,
     check_frize_basket(basket=basket)
     try:
         if not product.is_active:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(product='This product is not active'),
-                                )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=dict(product='This product is not active'),
+                )
         basket.products.append(product)
         logger.info(basket.products)
         await session.commit()
     except IntegrityError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(product='Этот товар уже был добален в корзину'))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=dict(product='Этот товар уже был добален в корзину'),
+            )
     return dict(state='success',
                 detail='Product is add success',
                 product=product,
@@ -238,11 +241,11 @@ def check_frize_basket(basket: Basket) -> None:
     не завершенная оплата
     """
     if basket.unique_temporary_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(
-                                    basket='В данный момент корзина '
-                                    'имеет фиксированное состояние '
-                                    'изза ожидающего платежа. '
-                                    'Если вы хотите добавить товар, '
-                                    'неоходимо отменить платеж.',
-                                    ))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=dict(
+                                basket='В данный момент корзина '
+                                'имеет фиксированное состояние '
+                                'изза ожидающего платежа. '
+                                'Если вы хотите добавить товар, '
+                                'неоходимо отменить платеж.',
+                                ))

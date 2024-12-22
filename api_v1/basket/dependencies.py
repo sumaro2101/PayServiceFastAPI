@@ -1,10 +1,8 @@
 from fastapi import Depends
-from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
 
 from api_v1.auth.permissions import active_user
-from api_v1.basket.schemas import BaseBasketSchema
+from .dao import BasketDAO
 from config.models import User, Basket
 from config.database import db_connection
 
@@ -16,20 +14,20 @@ async def get_or_create_basket(
     """
     Получение или создание корзины пользователя
     """
-    stmt = (Select(Basket)
-            .where(Basket.user_id == user.id)
-            .options(joinedload(Basket.products),
-                     selectinload(Basket.coupon)))
-    basket = await session.scalar(statement=stmt)
-    if not basket:
-        schema = BaseBasketSchema(user_id=user.id)
-        basket = Basket(**schema.model_dump(exclude='products'))
-        session.add(basket)
-        await session.commit()
-        await session.refresh(basket)
-        stmt = (Select(Basket)
-            .where(Basket.user_id == user.id)
-            .options(joinedload(Basket.products)))
-        basket = await session.scalar(statement=stmt)
-    # basket_out = BasketView(**basket.__dict__)
-    return basket
+    basket_out = await BasketDAO.find_item_by_args(
+        session=session,
+        one_to_many=(Basket.coupon,),
+        many_to_many=(Basket.products,),
+        user_id=user.id,
+    )
+    if not basket_out:
+        basket = await BasketDAO.add(
+            session=session,
+            user_id=user.id,
+        )
+        basket_out = await BasketDAO.find_item_by_args(
+            session=session,
+            many_to_many=(Basket.products,),
+            id=basket.id,
+        )
+    return basket_out

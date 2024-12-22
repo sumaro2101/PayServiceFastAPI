@@ -107,7 +107,7 @@ class UserPathHasher:
         attempts using the reset token, provided the secret isn't compromised.
         """
         login_timestamp = user.create_date
-        return f"{user.id}{user.password}{login_timestamp}{timestamp}{user.email}"
+        return f"{user.id}{user.hashed_password}{login_timestamp}{timestamp}{user.email}"
 
     def _constant_time_compare(self, val1, val2):
         """Return True if the two strings are equal, False otherwise."""
