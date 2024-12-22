@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
+from api_v1.auth.schemas import UserRead
 
 
 class BaseProfileUser(BaseModel):
@@ -14,7 +15,9 @@ class BaseProfileUser(BaseModel):
 class ProfileShema(BaseProfileUser):
 
     id: int
+    user: UserRead
 
 
 class ProfileCreateShema(BaseProfileUser):
+
     pass
