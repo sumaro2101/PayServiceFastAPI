@@ -12,7 +12,7 @@ from .schemas import (CouponViewSchema,
                       )
 from . import crud
 from api_v1.auth.permissions import superuser, active_user
-from .dependencies import get_coupon_by_name
+from .dependencies import get_coupon_by_name, get_full_coupone
 from .common import ErrorCode
 from config.database import db_connection
 from config.models import Coupon, User
@@ -86,7 +86,7 @@ async def get_list_promos(
 @router.patch(path='/update/{coupon_name}',
               name='coupons:patch_coupon',
               response_model=CouponSchema,
-              dependencies=[Depends(active_user)],
+              dependencies=[Depends(superuser)],
               responses={
                   status.HTTP_401_UNAUTHORIZED: {
                        "description": "Missing token or inactive user.",
@@ -115,7 +115,7 @@ async def get_list_promos(
                           }
                       }
                   }
-              }
+              },
               )
 async def update_coupon(
     coupon_schema: CouponSchemaUpdate,
@@ -130,11 +130,34 @@ async def update_coupon(
 
 
 @router.get(path='/get/{coupon_name}',
-            description='Получение купона',
+            name='coupons:get_coupon',
+            dependencies=[Depends(superuser)],
+            response_model=CouponViewSchema,
+            responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon is not found in system',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
+                              }
+                          }
+                      }
+                  }
+              }
             )
-async def get_coupon(coupon: Coupon = Depends(get_coupon_by_name),
-                     superuser: User = Depends(superuser),
-                     ):
+async def get_coupon(coupon: Coupon = Depends(get_full_coupone)):
     return coupon
 
 

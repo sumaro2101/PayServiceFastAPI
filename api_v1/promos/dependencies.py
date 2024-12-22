@@ -21,3 +21,20 @@ async def get_coupon_by_name(
                 detail=ErrorCode.COUPON_NOT_FOUND,
                 )
     return coupon
+
+
+async def get_full_coupone(
+    coupon_name: str,
+    session: AsyncSession = Depends(db_connection.session_geter),
+) -> Coupon:
+    coupon = await PromoDAO.find_item_by_args(
+        session=session,
+        number=coupon_name,
+        many_to_many=(Coupon.users,),
+    )
+    if not coupon:
+        raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=ErrorCode.COUPON_NOT_FOUND,
+                )
+    return coupon
