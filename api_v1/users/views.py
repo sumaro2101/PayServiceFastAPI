@@ -8,7 +8,7 @@ from api_v1.auth.schemas import UserRead, UserUpdate
 from api_v1.users.user_manager import get_user_manager
 from config.models import User
 from config.database import db_connection
-from .schemas import ProfileCreateShema, ProfileShema
+from .schemas import ProfileCreateShema, ProfileRead
 from . import crud
 from .dao import UserDAO
 from .dependencies import get_profile_by_id
@@ -52,10 +52,10 @@ async def get_list_user_api_view(
 
 # profile
 @router.post('/profile/create',
-             name='profile:create',
+             name='users:profile_create',
              status_code=status.HTTP_201_CREATED,
              dependencies=[Depends(active_user)],
-             response_model=ProfileShema,
+             response_model=ProfileRead,
              responses={
                  status.HTTP_401_UNAUTHORIZED: {
                     "description": "Missing token or inactive user.",
@@ -101,7 +101,14 @@ async def profile_create_api_view(
 
 
 @router.get('/profile',
-            name='Получение профиля',
+            name='users:profile_current_user',
+            dependencies=[Depends(active_user)],
+            response_model=ProfileRead,
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                    "description": "Missing token or inactive user.",
+                 },
+            },
             )
 async def get_profile_api_view(
     user: User = Depends(active_user),

@@ -27,7 +27,6 @@ async def get_profile(user_id: int,
     """Получения профиля
     """
     stmt = (Select(Profile).
-            where(Profile.user_id == user_id).
-            options(joinedload(Profile.user).selectinload(User.posts)))
+            where(Profile.user_id == user_id))
     profile = await session.scalar(stmt)
     return profile
