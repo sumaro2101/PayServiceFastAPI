@@ -42,13 +42,24 @@ async def create_product_api_view(
 
 
 @router.patch('/{product_id}/update',
-              name='Обновление продукта',
+              name='products:patch',
               response_model=Product,
+              dependencies=[Depends(superuser)],
+              responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+                 status.HTTP_404_NOT_FOUND: {
+                     "description": "Product not found.",
+                 },
+              },
               )
 async def update_product_api_view(
     product_update: ProductUpdate,
     product: Product = Depends(get_product_by_id),
-    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ) -> Product:
     return await crud.product_update(product=product,

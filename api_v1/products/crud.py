@@ -70,7 +70,6 @@ async def product_update(session: AsyncSession,
         instance=product,
         **updated_params,
     )
-    await session.commit()
     if product_update.model_dump(exclude_none=True):
         stripe_update = add_params(updated_params,
                                    id=product.id,
