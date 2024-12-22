@@ -81,11 +81,10 @@ class Payment:
                        products: list[Product],
                        ) -> None:
         if not products:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=(
-                                    dict(product='Для покупки нужен '
-                                         'минимум один товар')),
-                                )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='For payment you need no less 1 product',
+                )
 
     @classmethod
     async def exripe_session(cls,
@@ -155,9 +154,10 @@ class Payment:
         payment_session = await self.render_session(
             session=stripe,
         )
+        expire_session = basket.session_id
         session_id = payment_session.id
         await self.exripe_session(
-            session_id=session_id,
+            session_id=expire_session,
         )
         await self._set_basket_instanse(
             basket=basket,

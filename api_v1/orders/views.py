@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api_v1.auth.permissions import active_user
+from api_v1.auth.permissions import superuser
 from .schemas import OrderCreateSchema, OrderUpdateSchema
 from . import crud
 from config.database import db_connection
@@ -21,7 +21,7 @@ router = APIRouter(prefix='/orders',
              )
 async def create_order_api_view(
     order: OrderCreateSchema,
-    user: User = Depends(active_user),
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.create_order(
@@ -37,6 +37,7 @@ async def create_order_api_view(
 async def update_order_api_view(
     attrs: OrderUpdateSchema,
     order: Order = Depends(get_order_by_id),
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.update_order(session=session,
@@ -49,6 +50,7 @@ async def update_order_api_view(
             )
 async def list_orders_api_view(
     session: AsyncSession = Depends(db_connection.session_geter),
+    user: User = Depends(superuser),
 ):
     return await crud.list_orders(session=session)
 
@@ -60,6 +62,7 @@ async def list_orders_api_view(
 async def delete_order_api_view(
     session: AsyncSession = Depends(db_connection.session_geter),
     order: Order = Depends(get_order_by_id),
+    user: User = Depends(superuser),
 ):
     await crud.delete_order(
         session=session,

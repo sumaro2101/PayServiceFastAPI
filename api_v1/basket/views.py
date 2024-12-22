@@ -8,6 +8,7 @@ from . import crud
 from .dependencies import get_or_create_basket
 from api_v1.products.dependencies import get_product_by_id
 from api_v1.auth.permissions import active_user
+from api_v1.users.dao import UserDAO
 from config.database import db_connection
 from config.models import Basket, Product
 from .schemas import CouponeNameSchema
@@ -29,9 +30,14 @@ async def buy_products(
     basket: Basket = Depends(get_or_create_basket),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
+    user_with_coupon = await UserDAO.find_item_by_args(
+        session=session,
+        id=user.id,
+        many_to_many=(User.coupons,),
+    )
     payment = crud.Payment(
         coupon=coupone,
-        user=user,
+        user=user_with_coupon,
         basket=basket,
         session=session,
     )

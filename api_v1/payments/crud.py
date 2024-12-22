@@ -1,11 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Select
-from sqlalchemy.orm import joinedload
 from fastapi import HTTPException, status
+from stripe import _error
 
+from api_stripe.handler import error_stripe_handle
 from config.models import User, Basket, Order
 from api_stripe.api import ExpireSession
 from api_v1.basket.dao import BasketDAO
+from api_v1.orders.dao import OrderDAO
 
 
 class PaymentManager:
@@ -58,7 +59,12 @@ class PaymentManager:
     async def _expire_session(self,
                               session_id: str,
                               ) -> None:
-        await ExpireSession(session_id=session_id).expire_session()
+        try:
+            await ExpireSession(session_id=session_id).expire_session()
+        except _error.InvalidRequestError as ex:
+            message = error_stripe_handle(ex)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=dict(payment=message))
 
     async def _get_basket(self,
                           user_id: int,
@@ -78,11 +84,11 @@ class PaymentManager:
                          order_id: int,
                          session: AsyncSession,
                          ) -> Order:
-        stmt = (Select(Order)
-                .where(Order.id == order_id)
-                .options(joinedload(Order.products)))
-        order: Order = await session.scalar(statement=stmt)
-        return order
+        return await OrderDAO.find_item_by_args(
+            session=session,
+            id=order_id,
+            many_to_many=(Order.products,),
+        )
 
     async def _create_order(self,
                             user_id: int,
@@ -93,12 +99,12 @@ class PaymentManager:
             user_id=user_id,
             coupon_id=coupon_id,
             )
-        order_model = Order(**order_values)
-        session.add(order_model)
-        await session.commit()
-        await session.refresh(order_model)
+        order_instance = await OrderDAO.add(
+            session=session,
+            **order_values,
+        )
         order = await self._get_order(
-            order_id=order_model.id,
+            order_id=order_instance.id,
             session=session,
         )
         return order
@@ -106,7 +112,6 @@ class PaymentManager:
     async def _switch_products_to_order(self,
                                         basket: Basket,
                                         order: Order,
-                                        session: AsyncSession,
                                         ) -> Order:
         order.products.extend(basket.products)
         return order
@@ -134,7 +139,6 @@ class PaymentManager:
         fill_order = await self._switch_products_to_order(
             basket=basket,
             order=order,
-            session=session,
         )
         await self._reset_basket_state(
             basket=basket,
