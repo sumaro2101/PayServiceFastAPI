@@ -11,11 +11,11 @@ from .schemas import (CouponViewSchema,
                       CouponAddCountUser,
                       )
 from . import crud
-from api_v1.auth.permissions import superuser, active_user
+from api_v1.auth.permissions import superuser
 from .dependencies import get_coupon_by_name, get_full_coupone
 from .common import ErrorCode
 from config.database import db_connection
-from config.models import Coupon, User
+from config.models import Coupon
 from api_stripe.api import (CreateDiscountCoupon)
 
 
@@ -374,12 +374,44 @@ async def remove_coupon_all_user(
 
 
 @router.patch(path='/remove/{user_id}/{coupon_name}',
-              description='Забрать купон у пользователя',
+              name='coupons:remove_gift_from_user',
               response_model=CouponViewSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_400_BAD_REQUEST: {
+                        "description": "User not have coupon yet.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon not found',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
+                                  ErrorCode.USER_NOT_FOUND: {
+                                      'summary': 'User not found',
+                                      'value': {
+                                          'detail': ErrorCode.USER_NOT_FOUND,
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
+                },
               )
 async def remove_coupone_from_user(
     user_id: int,
-    superuser: User = Depends(superuser),
     coupon: Coupon = Depends(get_coupon_by_name),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
