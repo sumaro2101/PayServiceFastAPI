@@ -28,7 +28,8 @@ async def get_post_api_view(post: Post = Depends(get_post_by_id)):
 
 
 @router.get('',
-            name='Список постов',
+            name='posts:list',
+            response_model=list[PostsRead],
             )
 async def get_list_posts_api_view(
     session: AsyncSession = Depends(db_connection.session_geter),

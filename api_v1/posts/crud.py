@@ -17,7 +17,6 @@ async def get_post(post_id: int,
 async def get_list_posts(session: AsyncSession) -> list[Post]:
     return await PostDAO.find_all_items_by_args(
         session=session,
-        one_to_many=(Post.user,),
         order_by=(Post.id,),
     )
 
