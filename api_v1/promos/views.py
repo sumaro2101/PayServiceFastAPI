@@ -200,12 +200,35 @@ async def activate_coupon(
 
 
 @router.patch(path='/deactivate/{coupon_name}',
-              description='Деактивация купона',
+              name='coupons:deactivate_coupon',
               response_model=ActivityCouponeSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon is not found in system',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
+                              }
+                          }
+                      }
+                  }
+              },
               )
 async def deactivate_coupon(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.deactivate_coupon(
