@@ -12,6 +12,7 @@ def register_middlewares(app: FastAPI) -> None:
         CORSMiddleware,
         allow_origins=[
             settings.CURRENT_ORIGIN,
+            settings.STRIPE.STRIPE_ORIGIN,
         ],
         allow_credentials=True,
         allow_methods=['*'],

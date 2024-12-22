@@ -1,4 +1,3 @@
-import sys
 import asyncio
 import httpx
 import pytest_asyncio
@@ -40,7 +39,6 @@ async def app() -> AsyncGenerator[LifespanManager, Any]:
     async def lifespan(app: FastAPI):
         async with db_setup.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            sys.stdout.write('alembic upgrade head')
             yield
             await conn.run_sync(Base.metadata.drop_all)
 

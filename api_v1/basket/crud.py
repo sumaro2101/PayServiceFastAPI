@@ -13,7 +13,7 @@ from api_stripe.types import Session
 from api_stripe.handler import error_stripe_handle
 from api_v1.auth.utils import int_to_base36
 from api_v1.promos.dependencies import get_coupon_by_name
-from api_v1.orders.dependencies import get_order_by_user_and_coupone
+from api_v1.orders.crud import get_order_by_user_and_coupone
 from config.models.promo import Coupon
 from config.models.user import User
 from config import settings
@@ -81,11 +81,10 @@ class Payment:
                        products: list[Product],
                        ) -> None:
         if not products:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=(
-                                    dict(product='Для покупки нужен '
-                                         'минимум один товар')),
-                                )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='For payment you need no less 1 product',
+                )
 
     @classmethod
     async def exripe_session(cls,
@@ -155,9 +154,10 @@ class Payment:
         payment_session = await self.render_session(
             session=stripe,
         )
+        expire_session = basket.session_id
         session_id = payment_session.id
         await self.exripe_session(
-            session_id=session_id,
+            session_id=expire_session,
         )
         await self._set_basket_instanse(
             basket=basket,
@@ -188,15 +188,18 @@ async def add_product_basket(basket: Basket,
     check_frize_basket(basket=basket)
     try:
         if not product.is_active:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(product='This product is not active'),
-                                )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=dict(product='This product is not active'),
+                )
         basket.products.append(product)
         logger.info(basket.products)
         await session.commit()
     except IntegrityError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(product='Этот товар уже был добален в корзину'))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=dict(product='Этот товар уже был добален в корзину'),
+            )
     return dict(state='success',
                 detail='Product is add success',
                 product=product,
@@ -238,11 +241,11 @@ def check_frize_basket(basket: Basket) -> None:
     не завершенная оплата
     """
     if basket.unique_temporary_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(
-                                    basket='В данный момент корзина '
-                                    'имеет фиксированное состояние '
-                                    'изза ожидающего платежа. '
-                                    'Если вы хотите добавить товар, '
-                                    'неоходимо отменить платеж.',
-                                    ))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=dict(
+                                basket='В данный момент корзина '
+                                'имеет фиксированное состояние '
+                                'изза ожидающего платежа. '
+                                'Если вы хотите добавить товар, '
+                                'неоходимо отменить платеж.',
+                                ))

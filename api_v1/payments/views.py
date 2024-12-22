@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.models import User
 from config.database import db_connection
-from api_v1.auth.auth_validators import get_user_by_hash
+from api_v1.users.dependencies import get_user_by_hash
 from . import crud
 
 
@@ -12,11 +12,12 @@ router = APIRouter(prefix='/payments',
                    )
 
 
-@router.get(path='/success/{uid}/{token}/{unique_code}/')
-async def success_payment(unique_code: str,
-                          user: User = Depends(get_user_by_hash),
-                          session: AsyncSession = Depends(db_connection.session_geter),
-                          ):
+@router.get(path='/success/{uid}/{token}/{unique_code}')
+async def success_payment(
+    unique_code: str,
+    user: User = Depends(get_user_by_hash),
+    session: AsyncSession = Depends(db_connection.session_geter),
+):
     session_payment = crud.PaymentManager(
         user=user,
         unique_code=unique_code,
@@ -26,13 +27,14 @@ async def success_payment(unique_code: str,
     return order
 
 
-@router.get(path='/cancel/{uid}/{token}/{unique_code}/',
+@router.get(path='/cancel/{uid}/{token}/{unique_code}',
             status_code=status.HTTP_204_NO_CONTENT,
             )
-async def get_cancel(unique_code: str,
-                     user: User = Depends(get_user_by_hash),
-                     session: AsyncSession = Depends(db_connection.session_geter),
-                     ):
+async def get_cancel(
+    unique_code: str,
+    user: User = Depends(get_user_by_hash),
+    session: AsyncSession = Depends(db_connection.session_geter),
+):
     session_payment = crud.PaymentManager(
         user=user,
         unique_code=unique_code,

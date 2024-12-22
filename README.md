@@ -1,10 +1,14 @@
 # Title
+
 Данный проект является большим онлайн магазином. (Стадия разработки)
 
 # TO DO
+
 ## Stripe
+
 Проект реализует интеграцию с внешним API платежной системы Stripe.
 Реализованны Классы для интеграции:
+
 - Stripe # Абстрактный класс определяющий каркасс
 - CreateStripeItem # Создание Stripe объекта
 - UpdateStripeItem # Обновление Stripe объекта
@@ -18,6 +22,7 @@
 - ExpireSession # Отмена Stripe Cессии
 
 Создание Stripe объекта
+
 ```python
 values = dict(
     id=1,
@@ -29,6 +34,7 @@ await stripe.action()
 ```
 
 Обновление Stripe объекта
+
 ```python
 values = dict(
     id=1,
@@ -39,6 +45,7 @@ await stripe.action()
 ```
 
 Деактивация Stripe объекта
+
 ```python
 values = dict(
     id=1,
@@ -48,6 +55,7 @@ await stripe.action()
 ```
 
 Активация Stripe объекта
+
 ```python
 values = dict(
     id=1,
@@ -57,6 +65,7 @@ await stripe.action()
 ```
 
 Список Stripe объектов
+
 ```python
 list_items = [
     <Product1>,
@@ -73,6 +82,7 @@ stripe = StripeItems(
 ```
 
 Создание скидочного купона
+
 ```python
 values = dict(
     id=1,
@@ -85,6 +95,7 @@ await stripe.action()
 ```
 
 Обновление скидочного купона
+
 ```python
 values = dict(
     id=1,
@@ -95,6 +106,7 @@ await stripe.action()
 ```
 
 Удаление скидочного купона
+
 ```python
 values = dict(
     id=1,
@@ -104,6 +116,7 @@ await stripe.action()
 ```
 
 Создание Сессии для платежа
+
 ```python
 user = <User1>
 list_items = [
@@ -128,6 +141,7 @@ session.get_session_payments()
 ```
 
 Отмена Stripe Сессии
+
 ```python
 basket = <Basket1>
 ExpireSession(
@@ -136,8 +150,11 @@ ExpireSession(
 ```
 
 ## RabbitMQ, Celery
+
 Используется Брокер сообщений RabbitMQ и Worker Celery
+
 ### Docker RabbitMQ
+
 ```yaml
 rabbitmq:
     hostname: rabbitmq
@@ -155,6 +172,7 @@ volumes:
 ```
 
 ### Настройка RabbitMQ
+
 ```python
 # .env
 RABBITMQ_DEFAULT_USER=guest # Логин RabbitMQ
@@ -162,9 +180,10 @@ RABBITMQ_DEFAULT_PASS=guest # Пароль RabbitMQ
 ```
 
 ### Docker Celery Worker
+
 ```yaml
 celery_worker:
-    build: 
+    build:
       context: .
       dockerfile: ./docker/fastapi/Dockerfile
     command: /start-celeryworker
@@ -175,6 +194,7 @@ celery_worker:
 ```
 
 ### Настройка Celery
+
 ```python
 # congin/rabbitmq/connection.py
 from config.config import settings
@@ -186,25 +206,30 @@ app.autodiscover_tasks(packages=['project.packages'])
 ```
 
 ### Класс Celery
+
 Есть реализация Асихронного класса Celery
 для выполнения задач в асинхронном режиме.
 
 ### Использование
+
 После настройки RabbitMQ и Celery
 Вам необходимо запустить проект (инструкции ниже)
 а затем перейти по адрессу:
-http://localhost:15672/
+<http://localhost:15672/>
 Это будет страница RabbitMQ для просмотра всех каналов, очередей,
 обмеников, пользователей, и.т.д.
 Вам нужно будет ввести логин и пароль для аутентификации который вы указали в .env
 
 ## Flower
+
 Flower это мощное приложение для отслеживания всех
 задач на стороне Worker.
+
 ### Docker Flower
+
 ```yaml
 dashboard:
-    build: 
+    build:
       context: .
       dockerfile: ./docker/fastapi/Dockerfile
     command: /start-flower
@@ -217,16 +242,20 @@ dashboard:
 ```
 
 ### Настройка
+
 Предварительная настройка не требуется, все настройки подтягиваются
 автоматически из RabbitMQ.
 
 ### Использование
+
 Для использования Flower вам нужно перейти по адрессу:
-http://localhost:5555/
+<http://localhost:5555/>
 У вас откроется страница Flower с полной информацией о Worker и Tasks.
 
 # Dependencies
+
 В проекте используются зависимости:
+
 - fastapi
 - pydantic
 - pydantic-settings
@@ -245,9 +274,11 @@ http://localhost:5555/
 - flower
 
 ## SQLAlchemy
+
 SQLAlchemy используется асинхронный.
-Реализованн специальный класс для поддежки подключения и 
+Реализованн специальный класс для поддежки подключения и
 делегированнием сессий.
+
 - DataBaseHelper
 
 ```python
@@ -264,8 +295,11 @@ async def get_session(session: AsyncSession = Depends(db_helper.session_geter)):
 ```
 
 # Install
+
 ## ENV
+
 Для запуска проекта вам нужно установить переменные окружения
+
 ```python
 # .env
 POSTGRES_PASSWORD=password # Пароль базы данных (настройка)
@@ -274,40 +308,30 @@ RABBITMQ_DEFAULT_USER=user # Логин для RabbitMQ
 RABBITMQ_DEFAULT_PASS=password # Пароль для RabbitMQ
 STRIPE_API=some_stripe:api # API_KEY stripe платежная система
 ```
+
 Для получения API_KEY Stripe вам нужно перейти на официальную страницу Stripe [link](https://stripe.com)
 и зарегистрироваться, в последствии вы получите ключи для API.
 
-## Certifications
-- Перейдите в папку сертификатов
-```bash
-cd certs
-```
-
-- Создание приватного ключа
-```bash
-openssl genrsa -out jwt-private.pem 2048
-```
-
-- Создание публичного ключа на основе приватного
-```bash
-openssl rsa -in jwt-private.pem -outform PEM -pubout -out jwt-public.pem
-```
-
 ## Docker
+
 Проект находится под системой контеризации Docker
 Если у вас нет Docker, прейдите на официальную страницу Docker [link](https://www.docker.com)
 и скачайте от туда Docker (в случае если у вас система MAC, Windows, в ином установка посредством терминала).
 
 Неоходимо совершить билд образов и контейнеров
+
 ```bash
 docker compose build
 ```
+
 Затем запустить образы
+
 ```bash
 docker compose up
 ```
 
 # OpenAI
+
 FastAPI поддерживает автоматическую генерацию документации и взаимодействие с API.
 Для более легкого просмотра возможностей проекта (пока нет клиента) вы можете прейти по ссылке:
-http://localhost:8080/docs/
+<http://localhost:8080/docs/>

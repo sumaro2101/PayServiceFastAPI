@@ -17,6 +17,17 @@ class StripeSettings(BaseModel):
     """
 
     API_KEY: str = config('STRIPE_API')
+    STRIPE_ORIGIN: str = config('STRIPE_ORIGIN')
+
+
+class JWTSettings(BaseModel):
+    """
+    Настройки JWT токена
+    """
+    NAME: str = 'jwt'
+    SECRET: str = config('SECRET_KEY')
+    RESET_LIFESPAN_TOKEN_SECONDS: int = 3600
+    JWT_PATH: str = '/auth'
 
 
 class RabbitSettings(BaseModel):
@@ -65,21 +76,6 @@ class DBSettings(BaseModel):
     url: str = f'{_engine}://{_owner}:{_password}@{_name}/{_db_name}'
 
 
-class AuthJWT(BaseModel):
-    """
-    Настройки JWT аутентификации
-    """
-
-    PRIVATE_KEY_PATH: Path = certs_dir / 'jwt-private.pem'
-    PUBLIC_KEY_PATH: Path = certs_dir / 'jwt-public.pem'
-    ALGORITHM: str = config('ALGORITHM_JWT_AUTH')
-    EXPIRE_MINUTES: int = 60
-    REFRESH_EXPIRE_MINUTES: int = ((60 * 24) * 30)
-    TOKEN_TYPE_FIELD: str = 'type'
-    ACCESS_TOKEN_TYPE: str = 'access'
-    REFRESH_TOKEN_TYPE: str = 'refresh'
-
-
 class Settings(BaseSettings):
     """
     Настройки проекта
@@ -94,16 +90,14 @@ class Settings(BaseSettings):
     db: DBSettings = DBSettings()
     test_db: TestDBSettings = TestDBSettings()
     rabbit: RabbitSettings = RabbitSettings()
+    JWT: JWTSettings = JWTSettings()
     debug: bool = bool(int(config('DEBUG')))
-    FAIL_BASIC_AUTH: str = 'Не верный логин или пароль'
-    FAIL_TOKEN_AUTH: str = 'Токен не валидный'
-    AUTH_JWT: AuthJWT = AuthJWT()
     STRIPE: StripeSettings = StripeSettings()
     API_PREFIX: str = '/api/v1'
     BASE_DIR: Path = base_dir
     LOG_DIR: Path = log_dir
-    CERTS_DIR: Path = certs_dir
     CURRENT_ORIGIN: str = config('CURRENT_ORIGIN')
+    API_BOT: str = config('API_BOT')
 
 
 settings = Settings()

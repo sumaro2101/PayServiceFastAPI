@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -75,5 +75,5 @@ class ActivityCouponeSchema(BaseCouponSchema):
     """
     Схема активности купона
     """
-    
+
     pass

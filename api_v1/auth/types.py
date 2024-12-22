@@ -13,6 +13,7 @@ _PROTECTED_TYPES = (
     datetime.time,
 )
 
+
 def is_protected_type(obj):
     """Determine if the object instance is of a protected type.
 

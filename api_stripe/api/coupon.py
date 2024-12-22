@@ -82,7 +82,7 @@ class UpdateDiscountCoupon(Stripe):
         logger.info(f'get stripe discount update {target}')
         coupon = await stripe.Coupon.modify_async(
             id=str(target['id']),
-            name=target['number'],   
+            name=target['number'],
         )
         return coupon
 
