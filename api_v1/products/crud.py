@@ -105,7 +105,7 @@ async def product_deactivate(session: AsyncSession,
     if not product.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(product='This product is already non active'),
+            detail=ErrorCode.PRODUCT_ALREADY_UNACTIVE,
             )
     product.is_active = False
     await session.commit()
