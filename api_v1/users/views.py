@@ -25,11 +25,20 @@ router = APIRouter(prefix='/users',
                    )
 
 
-@router.get('/',
-            name='Список пользователей',
+@router.get('',
+            name='users:get_users_list',
+            response_model=list[UserRead],
+            dependencies=[Depends(superuser)],
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                    "description": "Missing token or inactive user.",
+                },
+                status.HTTP_403_FORBIDDEN: {
+                    "description": "Not a superuser.",
+                },
+            },
             )
 async def get_list_user_api_view(
-    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await UserDAO.find_all_items_by_args(
