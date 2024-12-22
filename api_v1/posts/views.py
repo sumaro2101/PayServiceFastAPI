@@ -37,9 +37,16 @@ async def get_list_posts_api_view(
     return await crud.get_list_posts(session=session)
 
 
-@router.post('/{user_id}',
-             name='Создание поста',
+@router.post('/create',
+             name='posts:create',
+             dependencies=[Depends(active_user)],
+             response_model=PostsRead,
              status_code=status.HTTP_201_CREATED,
+             responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                     },
+                 },
              )
 async def create_post_api_view(
     attrs: PostCreateSchema,
