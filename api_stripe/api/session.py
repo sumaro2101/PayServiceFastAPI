@@ -5,7 +5,7 @@ from loguru import logger
 from config import settings
 from config.models import Product, User
 from api_stripe.api import StripeItems
-from api_stripe.types import StipeResult, SessionParams, Session, StripeType
+from api_stripe.types import StipeResult, SessionParams, Session
 from api_v1.auth.hasher import UserPathHasher
 
 
@@ -44,11 +44,11 @@ class StripeSession:
         ),]
 
     def _get_success_url(self) -> str:
-        url = self.__url + f'success/{self.__path}/{self._unique_code}/'
+        url = self.__url + f'success/{self.__path}/{self._unique_code}'
         return url
 
     def _get_cancel_url(self) -> str:
-        url = self.__url + f'cancel/{self.__path}/{self._unique_code}/'
+        url = self.__url + f'cancel/{self.__path}/{self._unique_code}'
         return url
 
     def _get_list_prices(self,
@@ -129,7 +129,7 @@ class ExpireSession:
     async def _expire_session(self,
                               session_id: int,
                               ) -> None:
-        stripe.checkout.Session.expire_async(
+        await stripe.checkout.Session.expire_async(
             session=session_id,
         )
         logger.info(f'checkout is been deleted {session_id}')

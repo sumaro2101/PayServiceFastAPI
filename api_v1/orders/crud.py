@@ -1,36 +1,59 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Select, ScalarResult
-from sqlalchemy.orm import selectinload, joinedload
 
 from fastapi import HTTPException, status
 
 from config.models import Order
 from .schemas import OrderCreateSchema, OrderUpdateSchema
 from .utils import get_list_orders_to_append
+from .dao import OrderDAO
+from api_v1.promos.dependencies import get_coupon_by_name
+
+
+async def get_order_by_user_and_coupone(
+    user_id: int,
+    coupon_id: int,
+    session: AsyncSession,
+) -> Order | None:
+    return await OrderDAO.find_item_by_args(
+        session=session,
+        user_id=user_id,
+        coupon_id=coupon_id,
+    )
 
 
 async def get_order(order_id: int,
                     session: AsyncSession,
                     ):
-    stmt = (Select(Order)
-            .where(Order.id == order_id)
-            .options(selectinload(Order.products),
-                     joinedload(Order.coupon)))
-    result: ScalarResult = await session.scalar(stmt)
-    return result
+    return await OrderDAO.find_item_by_args(
+        session=session,
+        id=order_id,
+        one_to_many=(Order.coupon,),
+        many_to_many=(Order.products,),
+    )
 
 
 async def create_order(session: AsyncSession,
+                       user_id: int,
                        order_schema: OrderCreateSchema,
                        ) -> Order:
-    order = Order(**order_schema.model_dump(exclude='products'))
-    session.add(order)
-    await session.commit()
-    await session.refresh(order)
-    stmt = (Select(Order).
-                      where(Order.id == order.id).
-                      options(selectinload(Order.products)))
-    new_order = await session.scalar(stmt)
+    coupon_id = None
+    if order_schema.promocode:
+        coupon = await get_coupon_by_name(
+            coupon_name=order_schema.promocode,
+            session=session,
+        )
+        coupon_id = coupon.id
+    order = await OrderDAO.add(
+        session=session,
+        coupon_id=coupon_id,
+        user_id=user_id,
+        **order_schema.model_dump(exclude='products, promocode'),
+    )
+    new_order = await OrderDAO.find_item_by_args(
+        session=session,
+        id=order.id,
+        many_to_many=(Order.products,),
+    )
     products = await get_list_orders_to_append(session, order_schema.products)
     new_order.products += products
     await session.commit()
@@ -50,11 +73,11 @@ async def update_order(session: AsyncSession,
                                 detail='Нельзя указывать заказ без продуктов',
                                 )
         else:
-            products = await get_list_orders_to_append(session=session,
-                                                       ids_product=ids_product,
-                                                       )
+            products = await get_list_orders_to_append(
+                session=session,
+                ids_product=ids_product,
+                )
         del attrs['products']
-
     for key, value in attrs.items():
         setattr(order, key, value)
     order.products = products
@@ -62,10 +85,20 @@ async def update_order(session: AsyncSession,
     return order
 
 
+async def delete_order(
+    session: AsyncSession,
+    order: Order,
+) -> None:
+    await OrderDAO.delete(
+        session=session,
+        instance=order,
+    )
+
+
 async def list_orders(session: AsyncSession):
-    stmt = (Select(Order)
-            .order_by(Order.id)
-            .options(selectinload(Order.products),
-                     joinedload(Order.coupon)))
-    result: ScalarResult = list(await session.scalars(stmt))
-    return result
+    return await OrderDAO.find_all_items_by_args(
+        session=session,
+        one_to_many=(Order.coupon,),
+        many_to_many=(Order.products,),
+        order_by=(Order.id,),
+    )

@@ -1,11 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import Select, and_
+from sqlalchemy import Select
 from sqlalchemy.orm import joinedload
-
 from fastapi import HTTPException, status
 
 from config.models import User, Basket, Order
 from api_stripe.api import ExpireSession
+from api_v1.basket.dao import BasketDAO
 
 
 class PaymentManager:
@@ -28,17 +28,19 @@ class PaymentManager:
                           unique_code: str,
                           ) -> None:
         if not unique_code:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                        detail=dict(order='Permission Denied'),
-                        )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=dict(order='Permission Denied'),
+                )
 
     def _check_basket(self,
                       basket: Basket,
                       ) -> None:
         if not basket:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail=dict(order='Permission Denied'),
-                                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=dict(order='Permission Denied'),
+                )
 
     async def _reset_basket_state(self,
                                   basket: Basket,
@@ -63,11 +65,12 @@ class PaymentManager:
                           unique_code: str,
                           session: AsyncSession,
                           ) -> Basket | None:
-        stmt = (Select(Basket)
-            .where(and_(Basket.user_id == user_id,
-                        Basket.unique_temporary_id == unique_code))
-            .options(joinedload(Basket.products)))
-        basket: Basket = await session.scalar(statement=stmt)
+        basket = await BasketDAO.find_item_by_args(
+            session=session,
+            user_id=user_id,
+            unique_temporary_id=unique_code,
+            many_to_many=(Basket.products,),
+        )
         self._check_basket(basket=basket)
         return basket
 
@@ -86,8 +89,10 @@ class PaymentManager:
                             coupon_id: int,
                             session: AsyncSession,
                             ) -> Order:
-        order_values = dict(user_id=user_id,
-                        coupon_id=coupon_id)
+        order_values = dict(
+            user_id=user_id,
+            coupon_id=coupon_id,
+            )
         order_model = Order(**order_values)
         session.add(order_model)
         await session.commit()

@@ -13,7 +13,7 @@ from api_stripe.types import Session
 from api_stripe.handler import error_stripe_handle
 from api_v1.auth.utils import int_to_base36
 from api_v1.promos.dependencies import get_coupon_by_name
-from api_v1.orders.dependencies import get_order_by_user_and_coupone
+from api_v1.orders.crud import get_order_by_user_and_coupone
 from config.models.promo import Coupon
 from config.models.user import User
 from config import settings

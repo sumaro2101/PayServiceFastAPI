@@ -1,5 +1,4 @@
 from fastapi import APIRouter, status, Depends
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import crud
@@ -8,7 +7,9 @@ from .schemas import (Product,
                       ProductUpdate,
                       ActivityProductSchema,
                       )
+from api_v1.auth.permissions import superuser
 from config.database import db_connection
+from config.models import User
 from .dependencies import get_product_by_id
 
 
@@ -24,6 +25,7 @@ router = APIRouter(prefix='/products',
              )
 async def create_product_api_view(
     product: ProductCreate,
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.product_create(session=session,
@@ -38,6 +40,7 @@ async def create_product_api_view(
 async def update_product_api_view(
     product_update: ProductUpdate,
     product: Product = Depends(get_product_by_id),
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ) -> Product:
     return await crud.product_update(product=product,
@@ -47,11 +50,12 @@ async def update_product_api_view(
 
 
 @router.patch('/{product_id}/activate',
-              name='Активация продутка',
+              name='Активация продукта',
               response_model=ActivityProductSchema,
               )
 async def activate_product_api_view(
     product: Product = Depends(get_product_by_id),
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.product_activate(session=session,
@@ -65,6 +69,7 @@ async def activate_product_api_view(
               )
 async def deactivate_product_api_view(
     product: Product = Depends(get_product_by_id),
+    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.product_deactivate(product=product,
