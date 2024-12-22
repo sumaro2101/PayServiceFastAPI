@@ -25,7 +25,7 @@ router = APIRouter(prefix='/coupons',
 
 
 @router.post(path='/create',
-             name='coupons:create_coupon',
+             name='coupons:create',
              response_model=CouponSchema,
              status_code=status.HTTP_201_CREATED,
              dependencies=[Depends(superuser)],
@@ -65,7 +65,7 @@ async def create_coupone(
 
 
 @router.get(path='/list',
-            name='coupons:list_coupons',
+            name='coupons:list',
             response_model=list[CouponSchema],
             dependencies=[Depends(superuser)],
             responses={
@@ -84,7 +84,7 @@ async def get_list_promos(
 
 
 @router.patch(path='/update/{coupon_name}',
-              name='coupons:patch_coupon',
+              name='coupons:patch',
               response_model=CouponSchema,
               dependencies=[Depends(superuser)],
               responses={
@@ -93,6 +93,9 @@ async def get_list_promos(
                   },
                   status.HTTP_403_FORBIDDEN: {
                        "description": "Not a superuser.",
+                  },
+                  status.HTTP_404_NOT_FOUND: {
+                       "description": 'Coupone not found',
                   },
                   status.HTTP_400_BAD_REQUEST: {
                       'model': ErrorModel,
@@ -105,13 +108,7 @@ async def get_list_promos(
                                           'detail': ErrorCode.COUPON_WITH_SOME_NAME_EXISTS,
                                       }
                                   },
-                                  ErrorCode.COUPON_NOT_FOUND: {
-                                      'summary': 'Coupon is not found in system',
-                                      'value': {
-                                          'detail': ErrorCode.COUPON_NOT_FOUND,
-                                      }
-                                  },
-                              }
+                              },
                           }
                       }
                   }
@@ -130,7 +127,7 @@ async def update_coupon(
 
 
 @router.get(path='/get/{coupon_name}',
-            name='coupons:get_coupon',
+            name='coupons:get',
             dependencies=[Depends(superuser)],
             response_model=CouponViewSchema,
             responses={
@@ -140,21 +137,9 @@ async def update_coupon(
                   status.HTTP_403_FORBIDDEN: {
                        "description": "Not a superuser.",
                   },
-                  status.HTTP_400_BAD_REQUEST: {
-                      'model': ErrorModel,
-                      'content': {
-                          'application/json': {
-                              'examples': {
-                                  ErrorCode.COUPON_NOT_FOUND: {
-                                      'summary': 'Coupon is not found in system',
-                                      'value': {
-                                          'detail': ErrorCode.COUPON_NOT_FOUND,
-                                      }
-                                  },
-                              }
-                          }
-                      }
-                  }
+                  status.HTTP_404_NOT_FOUND: {
+                       "description": 'Coupone not found',
+                  },
               },
             )
 async def get_coupon(coupon: Coupon = Depends(get_full_coupone)):
@@ -162,7 +147,7 @@ async def get_coupon(coupon: Coupon = Depends(get_full_coupone)):
 
 
 @router.patch(path='/activate/{coupon_name}',
-              name='coupons:activate_coupon',
+              name='coupons:activate',
               response_model=ActivityCouponeSchema,
               dependencies=[Depends(superuser)],
               responses={
@@ -172,15 +157,18 @@ async def get_coupon(coupon: Coupon = Depends(get_full_coupone)):
                   status.HTTP_403_FORBIDDEN: {
                        "description": "Not a superuser.",
                   },
+                  status.HTTP_404_NOT_FOUND: {
+                       "description": 'Coupone not found',
+                  },
                   status.HTTP_400_BAD_REQUEST: {
                       'model': ErrorModel,
                       'content': {
                           'application/json': {
                               'examples': {
-                                  ErrorCode.COUPON_NOT_FOUND: {
-                                      'summary': 'Coupon is not found in system',
+                                  ErrorCode.COUPON_IS_ALREADY_ACTIVE: {
+                                      'summary': 'Coupon is already active',
                                       'value': {
-                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                          'detail': ErrorCode.COUPON_IS_ALREADY_ACTIVE,
                                       }
                                   },
                               }
@@ -200,7 +188,7 @@ async def activate_coupon(
 
 
 @router.patch(path='/deactivate/{coupon_name}',
-              name='coupons:deactivate_coupon',
+              name='coupons:deactivate',
               response_model=ActivityCouponeSchema,
               dependencies=[Depends(superuser)],
               responses={
@@ -210,15 +198,18 @@ async def activate_coupon(
                   status.HTTP_403_FORBIDDEN: {
                        "description": "Not a superuser.",
                   },
+                  status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                  },
                   status.HTTP_400_BAD_REQUEST: {
                       'model': ErrorModel,
                       'content': {
                           'application/json': {
                               'examples': {
-                                  ErrorCode.COUPON_NOT_FOUND: {
-                                      'summary': 'Coupon is not found in system',
+                                  ErrorCode.COUPON_IS_ALREADY_UNACTIVE: {
+                                      'summary': 'Coupon is already unactive',
                                       'value': {
-                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                          'detail': ErrorCode.COUPON_IS_ALREADY_UNACTIVE,
                                       }
                                   },
                               }
@@ -238,15 +229,26 @@ async def deactivate_coupon(
 
 
 @router.delete(path='/delete/{coupon_name}',
-               description='Удаление купона',
+               name='coupons:delete',
                status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(superuser)],
+               responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                   },
+                   },
                )
 async def delele_coupon(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
-) -> None:
-    return await crud.delete_coupon(
+):
+    await crud.delete_coupon(
         coupon=coupon,
         session=session,
     )

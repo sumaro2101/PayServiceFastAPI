@@ -74,7 +74,7 @@ async def activate_coupon(coupon: Coupon,
                           ) -> Coupon:
     if coupon.active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(coupon='Coupon is already active'),
+                            detail=ErrorCode.COUPON_IS_ALREADY_ACTIVE,
                             )
     coupon.active = True
     await session.commit()
@@ -86,7 +86,7 @@ async def deactivate_coupon(coupon: Coupon,
                             ) -> Coupon:
     if not coupon.active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(coupon='Coupon is already non active'),
+                            detail=ErrorCode.COUPON_IS_ALREADY_UNACTIVE,
                             )
     coupon.active = False
     await session.commit()

@@ -17,7 +17,7 @@ async def get_coupon_by_name(
     )
     if not coupon:
         raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=ErrorCode.COUPON_NOT_FOUND,
                 )
     return coupon
@@ -34,7 +34,7 @@ async def get_full_coupone(
     )
     if not coupon:
         raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=ErrorCode.COUPON_NOT_FOUND,
                 )
     return coupon
