@@ -1,19 +1,24 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ProductSchema(BaseModel):
+    name: str
+    description: str
+    price: int
+
+
 class BaseBasketSchema(BaseModel):
     """Схема корзины
     """
     model_config = ConfigDict(from_attributes=True)
-    
-    user_id: int
-    products: list[int] = Field(default_factory=list)
+
+    products: list[ProductSchema]
 
 
 class BasketSchema(BaseBasketSchema):
     id: int
 
- 
+
 class BasketView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

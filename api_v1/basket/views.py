@@ -1,8 +1,5 @@
-from fastapi import APIRouter, Depends
-
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from config.models.user import User
 
 from . import crud
 from .dependencies import get_or_create_basket
@@ -10,15 +7,23 @@ from api_v1.products.dependencies import get_product_by_id
 from api_v1.auth.permissions import active_user
 from api_v1.users.dao import UserDAO
 from config.database import db_connection
-from config.models import Basket, Product
-from .schemas import CouponeNameSchema
+from config.models import Basket, Product, User
+from .schemas import CouponeNameSchema, BasketView
 
 
 router = APIRouter(prefix='/basket',
                    tags=['Basket'])
 
 
-@router.get(path='/get')
+@router.get(path='/get',
+            name='basket:get',
+            response_model=BasketView,
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                    "description": "Missing token or inactive user.",
+                    },
+                },
+            )
 async def get_basket(basket: Basket = Depends(get_or_create_basket)):
     return basket
 

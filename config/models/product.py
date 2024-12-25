@@ -11,7 +11,6 @@ if TYPE_CHECKING:
     from .basket import Basket
 
 
-
 class Product(Base):
     """Модель товара
     """
