@@ -10,6 +10,7 @@ from config.database import db_connection
 from . import crud
 from .dao import UserDAO
 from .user_manager import get_user_manager
+from .common import ErrorCode
 
 
 async def get_profile_by_id(
@@ -44,7 +45,8 @@ async def get_user_by_hash(
         return user
     else:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=dict(permission='Доступ запрещен'))
+                            detail=ErrorCode.FORBIDDEN,
+                            )
 
 
 async def get_user_or_404(

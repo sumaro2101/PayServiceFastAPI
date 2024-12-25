@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, status, Depends
+from fastapi_users.router.common import ErrorModel
 
 from .schemas import (CouponViewSchema,
                       CouponSchema,
@@ -11,9 +12,10 @@ from .schemas import (CouponViewSchema,
                       )
 from . import crud
 from api_v1.auth.permissions import superuser
-from .dependencies import get_coupon_by_name
+from .dependencies import get_coupon_by_name, get_full_coupone
+from .common import ErrorCode
 from config.database import db_connection
-from config.models import Coupon, User
+from config.models import Coupon
 from api_stripe.api import (CreateDiscountCoupon)
 
 
@@ -22,14 +24,37 @@ router = APIRouter(prefix='/coupons',
                    )
 
 
-@router.put(path='/create',
-            description='Создания купона',
-            response_model=CouponSchema,
-            status_code=status.HTTP_201_CREATED,
-            )
+@router.post(path='/create',
+             name='coupons:create',
+             response_model=CouponSchema,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(superuser)],
+             responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+                 status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_IS_ALREADY_EXISTS: {
+                                      'summary': 'Coupon already exists in system',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_IS_ALREADY_EXISTS,
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+             },
+             )
 async def create_coupone(
     coupon_schema: CouponSchemaCreate,
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.create_coupon(
@@ -40,23 +65,57 @@ async def create_coupone(
 
 
 @router.get(path='/list',
-            description='Получение списка купонов',
-            response_model=list[CouponViewSchema],
+            name='coupons:list',
+            response_model=list[CouponSchema],
+            dependencies=[Depends(superuser)],
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                },
+                status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                },
+            }
             )
 async def get_list_promos(
     session: AsyncSession = Depends(db_connection.session_geter),
-    superuser: User = Depends(superuser),
 ):
     return await crud.get_list_promos(session=session)
 
 
 @router.patch(path='/update/{coupon_name}',
-              description='Обновление купона',
+              name='coupons:patch',
               response_model=CouponSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_404_NOT_FOUND: {
+                       "description": 'Coupone not found',
+                  },
+                  status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_WITH_SOME_NAME_EXISTS: {
+                                      'summary': 'Coupon is have same name with another',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_WITH_SOME_NAME_EXISTS,
+                                      }
+                                  },
+                              },
+                          }
+                      }
+                  }
+              },
               )
 async def update_coupon(
     coupon_schema: CouponSchemaUpdate,
-    superuser: User = Depends(superuser),
     coupon: Coupon = Depends(get_coupon_by_name),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
@@ -68,21 +127,58 @@ async def update_coupon(
 
 
 @router.get(path='/get/{coupon_name}',
-            description='Получение купона',
+            name='coupons:get',
+            dependencies=[Depends(superuser)],
+            response_model=CouponViewSchema,
+            responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_404_NOT_FOUND: {
+                       "description": 'Coupone not found',
+                  },
+              },
             )
-async def get_coupon(coupon: Coupon = Depends(get_coupon_by_name),
-                     superuser: User = Depends(superuser),
-                     ):
+async def get_coupon(coupon: Coupon = Depends(get_full_coupone)):
     return coupon
 
 
 @router.patch(path='/activate/{coupon_name}',
-              description='Активация купона по имени',
+              name='coupons:activate',
               response_model=ActivityCouponeSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_404_NOT_FOUND: {
+                       "description": 'Coupone not found',
+                  },
+                  status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_IS_ALREADY_ACTIVE: {
+                                      'summary': 'Coupon is already active',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_IS_ALREADY_ACTIVE,
+                                      }
+                                  },
+                              }
+                          }
+                      }
+                  }
+              },
               )
 async def activate_coupon(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.activate_coupon(
@@ -92,12 +188,38 @@ async def activate_coupon(
 
 
 @router.patch(path='/deactivate/{coupon_name}',
-              description='Деактивация купона',
+              name='coupons:deactivate',
               response_model=ActivityCouponeSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                  status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                  },
+                  status.HTTP_403_FORBIDDEN: {
+                       "description": "Not a superuser.",
+                  },
+                  status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                  },
+                  status.HTTP_400_BAD_REQUEST: {
+                      'model': ErrorModel,
+                      'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_IS_ALREADY_UNACTIVE: {
+                                      'summary': 'Coupon is already unactive',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_IS_ALREADY_UNACTIVE,
+                                      }
+                                  },
+                              }
+                          }
+                      }
+                  }
+              },
               )
 async def deactivate_coupon(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.deactivate_coupon(
@@ -107,27 +229,49 @@ async def deactivate_coupon(
 
 
 @router.delete(path='/delete/{coupon_name}',
-               description='Удаление купона',
+               name='coupons:delete',
                status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(superuser)],
+               responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                   },
+                },
                )
 async def delele_coupon(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
-) -> None:
-    return await crud.delete_coupon(
+):
+    await crud.delete_coupon(
         coupon=coupon,
         session=session,
     )
 
 
 @router.patch(path='/gift/all/{coupon_name}',
-              description='Дать купон всем активным пользователям',
+              name='coupons:gift_all',
               response_model=CouponAddCountUser,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                   },
+                },
               )
 async def gift_all_active_users(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.gift_to_all_active_users(
@@ -137,13 +281,63 @@ async def gift_all_active_users(
 
 
 @router.patch(path='/gift/{user_id}/{coupon_name}',
-              description='Дать купон пользователю',
+              name='coupons:gift_to_user',
               response_model=CouponViewSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_400_BAD_REQUEST: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_IS_UNACTIVE: {
+                                      'summary': 'Coupon not active',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_IS_UNACTIVE,
+                                      }
+                                  },
+                                  ErrorCode.USER_HAVE_COUPON_YET: {
+                                      'summary': 'User have coupon yet',
+                                      'value': {
+                                          'detail': ErrorCode.USER_HAVE_COUPON_YET,
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon not found',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
+                                  ErrorCode.USER_NOT_FOUND: {
+                                      'summary': 'User not found',
+                                      'value': {
+                                          'detail': ErrorCode.USER_NOT_FOUND,
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
+                },
               )
 async def gift_coupone_to_user(
     user_id: int,
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.gift_to_user(
@@ -154,12 +348,23 @@ async def gift_coupone_to_user(
 
 
 @router.patch(path='/remove/all/{coupon_name}',
-              description='Забрать купоны у всех пользователей',
+              name='coupons:remove_gift_all',
               response_model=CouponAddCountUser,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                        "description": 'Coupone not found',
+                   },
+                },
               )
 async def remove_coupon_all_user(
     coupon: Coupon = Depends(get_coupon_by_name),
-    superuser: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.remove_all_coupons_from_users(
@@ -169,12 +374,44 @@ async def remove_coupon_all_user(
 
 
 @router.patch(path='/remove/{user_id}/{coupon_name}',
-              description='Забрать купон у пользователя',
+              name='coupons:remove_gift_from_user',
               response_model=CouponViewSchema,
+              dependencies=[Depends(superuser)],
+              responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                        "description": "Missing token or inactive user.",
+                   },
+                   status.HTTP_403_FORBIDDEN: {
+                        "description": "Not a superuser.",
+                   },
+                   status.HTTP_400_BAD_REQUEST: {
+                        "description": "User not have coupon yet.",
+                   },
+                   status.HTTP_404_NOT_FOUND: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.COUPON_NOT_FOUND: {
+                                      'summary': 'Coupon not found',
+                                      'value': {
+                                          'detail': ErrorCode.COUPON_NOT_FOUND,
+                                      }
+                                  },
+                                  ErrorCode.USER_NOT_FOUND: {
+                                      'summary': 'User not found',
+                                      'value': {
+                                          'detail': ErrorCode.USER_NOT_FOUND,
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
+                },
               )
 async def remove_coupone_from_user(
     user_id: int,
-    superuser: User = Depends(superuser),
     coupon: Coupon = Depends(get_coupon_by_name),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):

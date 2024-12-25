@@ -1,5 +1,18 @@
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Union
+from fastapi_users import schemas
+
+
+class UserRead(schemas.BaseUser[int]):
+    """
+    Схема пользователя
+    При добавлении полей в модель, так же
+    необходимо добавить поля - тут!
+    """
+    username: str
+    phone: str
+    create_date: datetime
 
 
 class BasePostSchema(BaseModel):
@@ -11,6 +24,12 @@ class BasePostSchema(BaseModel):
 
 
 class PostSchema(BasePostSchema):
+
+    id: int
+    user: UserRead
+
+
+class PostsRead(BasePostSchema):
 
     id: int
 

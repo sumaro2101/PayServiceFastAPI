@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config.models import Product
 from config.database import db_connection
 from . import crud
+from .common import ErrorCode
 
 
 async def get_product_by_id(
@@ -19,6 +20,6 @@ async def get_product_by_id(
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Продукт {product_id} не был найден',
+            detail=ErrorCode.PRODUCT_NOT_FOUND,
             )
     return product

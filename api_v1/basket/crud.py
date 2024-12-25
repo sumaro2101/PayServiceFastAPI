@@ -12,12 +12,13 @@ from api_stripe.api import StripeSession, ExpireSession
 from api_stripe.types import Session
 from api_stripe.handler import error_stripe_handle
 from api_v1.auth.utils import int_to_base36
-from api_v1.promos.dependencies import get_coupon_by_name
+from api_v1.promos.dao import PromoDAO
 from api_v1.orders.crud import get_order_by_user_and_coupone
 from config.models.promo import Coupon
 from config.models.user import User
 from config import settings
 from .schemas import CouponeNameSchema
+from .common import ErrorCode
 
 
 class Payment:
@@ -34,7 +35,7 @@ class Payment:
                  basket: Basket,
                  session: AsyncSession,
                  ) -> None:
-        self.coupon = coupon.number
+        self.coupon = coupon
         self.basket = basket
         self.products = basket.products
         self.user = user
@@ -45,9 +46,10 @@ class Payment:
                           coupon_name: str,
                           session: AsyncSession,
                           ) -> Coupon:
-        coupon = await get_coupon_by_name(
-            coupon_name=coupon_name,
+        coupon = await PromoDAO.find_item_by_args(
             session=session,
+            number=coupon_name,
+            many_to_many=(Coupon.users,)
         )
         return coupon
 
@@ -64,8 +66,8 @@ class Payment:
         )
         if promo_in_orders:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(coupone='This coupon '
-                                            'is already used'))
+                                detail=ErrorCode.COUPON_ALREADY_USED,
+                                )
         return
 
     def _check_coupon_having(self,
@@ -74,7 +76,8 @@ class Payment:
                              ) -> None:
         if coupon not in user.coupons:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(coupon='You not have this coupon'))
+                                detail=ErrorCode.COUPON_NOT_HAVE_USER,
+                                )
 
     @classmethod
     def check_products(cls,
@@ -83,7 +86,7 @@ class Payment:
         if not products:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='For payment you need no less 1 product',
+                detail=ErrorCode.ZERO_PRODUCTS_IN_BASKET,
                 )
 
     @classmethod
@@ -184,13 +187,13 @@ class Payment:
 async def add_product_basket(basket: Basket,
                              product: Product,
                              session: AsyncSession,
-                             ) -> dict:
+                             ) -> Product:
     check_frize_basket(basket=basket)
     try:
         if not product.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=dict(product='This product is not active'),
+                detail=ErrorCode.PRODUCT_NOT_ACTIVE,
                 )
         basket.products.append(product)
         logger.info(basket.products)
@@ -198,12 +201,9 @@ async def add_product_basket(basket: Basket,
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(product='Этот товар уже был добален в корзину'),
+            detail=ErrorCode.PRODUCT_ADDED_YET,
             )
-    return dict(state='success',
-                detail='Product is add success',
-                product=product,
-                )
+    return product,
 
 
 async def delete_product_basket(basket: Basket,
@@ -216,11 +216,9 @@ async def delete_product_basket(basket: Basket,
         await session.commit()
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(product='Этого товара нет в корзине'))
-    return dict(state='success',
-                detail='Product is delete',
-                product=product.name,
-                )
+                            detail=ErrorCode.PRODUCT_NOT_CONTAINE_IN_BASKET,
+                            )
+    return product
 
 
 async def delete_all_products(basket: Basket,
@@ -229,9 +227,6 @@ async def delete_all_products(basket: Basket,
     check_frize_basket(basket=basket)
     basket.products.clear()
     await session.commit()
-    return dict(state='success',
-                detail='Basket is clear',
-                )
 
 
 def check_frize_basket(basket: Basket) -> None:
@@ -242,10 +237,5 @@ def check_frize_basket(basket: Basket) -> None:
     """
     if basket.unique_temporary_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(
-                                basket='В данный момент корзина '
-                                'имеет фиксированное состояние '
-                                'изза ожидающего платежа. '
-                                'Если вы хотите добавить товар, '
-                                'неоходимо отменить платеж.',
-                                ))
+                            detail=ErrorCode.FRIZE_STATE_BASKET,
+                            )

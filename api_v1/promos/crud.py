@@ -1,11 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import status, HTTPException
-from loguru import logger
 
 from api_stripe.abs import Stripe
 from config.models.user import User
 from .schemas import CouponSchemaCreate, CouponSchemaUpdate
 from .dao import PromoDAO
+from .common import ErrorCode
 from config.models import Coupon
 from api_v1.users.dao import UserDAO
 from api_v1.promos.tasks import (
@@ -17,7 +17,6 @@ from api_v1.promos.tasks import (
 async def get_list_promos(session: AsyncSession) -> list[Coupon]:
     return await PromoDAO.find_all_items_by_args(
         session=session,
-        one_to_many=(Coupon.users,),
     )
 
 
@@ -32,9 +31,8 @@ async def create_coupon(coupon_schema: CouponSchemaCreate,
     if created_coupon:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Coupon is already exists',
+            detail=ErrorCode.COUPON_IS_ALREADY_EXISTS,
             )
-    logger.info(f'time end_at = {coupon_schema.end_at}')
     coupon_schema.end_at = coupon_schema.end_at.replace(tzinfo=None)
     coupon = await PromoDAO.add(
         session=session,
@@ -50,10 +48,16 @@ async def update_coupon(coupon_schema: CouponSchemaUpdate,
                         session: AsyncSession,
                         ) -> Coupon:
     update_schema = coupon_schema.model_dump(exclude_unset=True)
-    if not update_schema:
+    if not update_schema or coupon.number == coupon_schema.number:
+        return coupon
+    created_coupon = await PromoDAO.find_item_by_args(
+        session=session,
+        number=coupon_schema.number,
+    )
+    if created_coupon:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(coupon='Body mast have no less one field'),
+            detail=ErrorCode.COUPON_WITH_SOME_NAME_EXISTS,
             )
     coupon = await PromoDAO.update(
         session=session,
@@ -70,7 +74,7 @@ async def activate_coupon(coupon: Coupon,
                           ) -> Coupon:
     if coupon.active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(coupon='Coupon is already active'),
+                            detail=ErrorCode.COUPON_IS_ALREADY_ACTIVE,
                             )
     coupon.active = True
     await session.commit()
@@ -82,7 +86,7 @@ async def deactivate_coupon(coupon: Coupon,
                             ) -> Coupon:
     if not coupon.active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(coupon='Coupon is already non active'),
+                            detail=ErrorCode.COUPON_IS_ALREADY_UNACTIVE,
                             )
     coupon.active = False
     await session.commit()
@@ -103,7 +107,7 @@ async def gift_to_user(user_id: int,
                        ) -> Coupon:
     if not coupon.active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(coupon='Coupon is not active'),
+                            detail=ErrorCode.COUPON_IS_UNACTIVE,
                             )
     user = await UserDAO.find_item_by_args(
         session=session,
@@ -113,12 +117,12 @@ async def gift_to_user(user_id: int,
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found',
+            detail=ErrorCode.USER_NOT_FOUND,
         )
     if coupon in user.coupons:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(coupon='This coupon is already have user'),
+            detail=ErrorCode.USER_HAVE_COUPON_YET,
             )
     user.coupons.append(coupon)
     await session.commit()
@@ -175,7 +179,7 @@ async def remove_from_user(user_id: int,
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found',
+            detail=ErrorCode.USER_NOT_FOUND,
         )
     try:
         user.coupons.remove(coupon)
@@ -183,6 +187,6 @@ async def remove_from_user(user_id: int,
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(coupon='This coupon is not prezent to user'),
+            detail=ErrorCode.USER_NO_HAVE_COUPON_YET,
             )
     return coupon

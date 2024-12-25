@@ -6,7 +6,8 @@ from config.models import Order
 from .schemas import OrderCreateSchema, OrderUpdateSchema
 from .utils import get_list_orders_to_append
 from .dao import OrderDAO
-from api_v1.promos.dependencies import get_coupon_by_name
+from .common import ErrorCode
+from api_v1.promos.dao import PromoDAO
 
 
 async def get_order_by_user_and_coupone(
@@ -24,30 +25,38 @@ async def get_order_by_user_and_coupone(
 async def get_order(order_id: int,
                     session: AsyncSession,
                     ):
-    return await OrderDAO.find_item_by_args(
+    order = await OrderDAO.find_item_by_args(
         session=session,
         id=order_id,
         one_to_many=(Order.coupon,),
         many_to_many=(Order.products,),
     )
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=ErrorCode.ORDER_NOT_FOUND,
+                            )
 
 
 async def create_order(session: AsyncSession,
                        user_id: int,
                        order_schema: OrderCreateSchema,
                        ) -> Order:
+    if not order_schema.products:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ErrorCode.CANT_BE_EMPTY_LIST_PRODUCTS,
+                            )
     coupon_id = None
-    if order_schema.promocode:
-        coupon = await get_coupon_by_name(
-            coupon_name=order_schema.promocode,
+    if order_schema.coupon_name:
+        coupon = await PromoDAO.find_item_by_args(
             session=session,
+            number=order_schema.coupon_name,
         )
         coupon_id = coupon.id
     order = await OrderDAO.add(
         session=session,
         coupon_id=coupon_id,
         user_id=user_id,
-        **order_schema.model_dump(exclude='products, promocode'),
+        **order_schema.model_dump(exclude='products, coupon_name'),
     )
     new_order = await OrderDAO.find_item_by_args(
         session=session,
@@ -70,7 +79,7 @@ async def update_order(session: AsyncSession,
         ids_product = attrs['products']
         if ids_product == []:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail='Нельзя указывать заказ без продуктов',
+                                detail=ErrorCode.CANT_BE_EMPTY_LIST_PRODUCTS,
                                 )
         else:
             products = await get_list_orders_to_append(
