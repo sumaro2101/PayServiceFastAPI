@@ -216,11 +216,9 @@ async def delete_product_basket(basket: Basket,
         await session.commit()
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(product='Этого товара нет в корзине'))
-    return dict(state='success',
-                detail='Product is delete',
-                product=product.name,
-                )
+                            detail=ErrorCode.PRODUCT_NOT_CONTAINE_IN_BASKET,
+                            )
+    return product
 
 
 async def delete_all_products(basket: Basket,

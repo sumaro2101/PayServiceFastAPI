@@ -8,6 +8,14 @@ class ProductSchema(BaseModel):
     price: int
 
 
+class AddProduct(BaseModel):
+    added: ProductSchema
+
+
+class DeletedProduct(BaseModel):
+    deleted: ProductSchema
+
+
 class BaseBasketSchema(BaseModel):
     """Схема корзины
     """

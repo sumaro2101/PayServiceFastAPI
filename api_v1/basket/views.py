@@ -13,7 +13,8 @@ from config.models import Basket, Product, User
 from .schemas import (CouponeNameSchema,
                       BaseBasketSchema,
                       LinkToPayment,
-                      ProductSchema,
+                      AddProduct,
+                      DeletedProduct,
                       )
 
 
@@ -102,7 +103,7 @@ async def buy_products(
 @router.put(path='/add-product/{product_id}',
             name='basket:add_product',
             dependencies=[Depends(active_user)],
-            response_model=ProductSchema,
+            response_model=AddProduct,
             responses={
                 status.HTTP_401_UNAUTHORIZED: {
                     "description": "Missing token or inactive user.",
@@ -110,7 +111,6 @@ async def buy_products(
                 status.HTTP_404_NOT_FOUND: {
                     "description": "Product not found.",
                     },
-
                 status.HTTP_400_BAD_REQUEST: {
                     'model': ErrorModel,
                     'content': {
@@ -145,24 +145,59 @@ async def add_products(
     product: Product = Depends(get_product_by_id),
     session: AsyncSession = Depends(db_connection.session_geter)
 ):
-    return await crud.add_product_basket(
+    product = await crud.add_product_basket(
         basket=basket,
         product=product,
         session=session,
         )
+    return {'added': product}
 
 
-@router.delete(path='/delete-product/{product_id}')
+@router.put(path='/delete-product/{product_id}',
+            name='basket:delete_product',
+            dependencies=[Depends(active_user)],
+            response_model=DeletedProduct,
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                    "description": "Missing token or inactive user.",
+                    },
+                status.HTTP_404_NOT_FOUND: {
+                    "description": "Product not found.",
+                    },
+                status.HTTP_400_BAD_REQUEST: {
+                    'model': ErrorModel,
+                    'content': {
+                        'application/json': {
+                            'examples': {
+                                ErrorCode.PRODUCT_NOT_CONTAINE_IN_BASKET: {
+                                    'summary': 'Product is not containe in basket.',
+                                    'value': {
+                                        'detail': ErrorCode.PRODUCT_NOT_CONTAINE_IN_BASKET,
+                                        }
+                                    },
+                                ErrorCode.FRIZE_STATE_BASKET: {
+                                    'summary': 'Basket in frize state',
+                                    'value': {
+                                        'detail': ErrorCode.FRIZE_STATE_BASKET,
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    },
+                }
+            )
 async def delete_products(
     basket: Basket = Depends(get_or_create_basket),
     product: Product = Depends(get_product_by_id),
     session: AsyncSession = Depends(db_connection.session_geter)
 ):
-    return await crud.delete_product_basket(
+    product = await crud.delete_product_basket(
         basket=basket,
         product=product,
         session=session,
         )
+    return {'deleted': product}
 
 
 @router.delete(path='/delete-all-products')
