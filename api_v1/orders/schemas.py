@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -22,6 +23,7 @@ class OrderCreateSchema(BaseModel):
 
 class ReadOrder(BaseModel):
     id: int
+    create_date: datetime
     coupon: ReadCoupon | None
     products: list[ReadProducts]
 

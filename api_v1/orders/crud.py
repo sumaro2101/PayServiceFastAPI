@@ -25,12 +25,16 @@ async def get_order_by_user_and_coupone(
 async def get_order(order_id: int,
                     session: AsyncSession,
                     ):
-    return await OrderDAO.find_item_by_args(
+    order = await OrderDAO.find_item_by_args(
         session=session,
         id=order_id,
         one_to_many=(Order.coupon,),
         many_to_many=(Order.products,),
     )
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=ErrorCode.ORDER_NOT_FOUND,
+                            )
 
 
 async def create_order(session: AsyncSession,

@@ -107,11 +107,20 @@ async def update_order_api_view(
 
 
 @router.get('',
-            name='Список заказов',
+            name='orders:list',
+            dependencies=[Depends(superuser)],
+            response_model=list[ReadOrder],
+            responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+            },
             )
 async def list_orders_api_view(
     session: AsyncSession = Depends(db_connection.session_geter),
-    user: User = Depends(superuser),
 ):
     return await crud.list_orders(session=session)
 
