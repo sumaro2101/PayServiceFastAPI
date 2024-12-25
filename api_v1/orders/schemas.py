@@ -9,6 +9,7 @@ class ReadCoupon(BaseModel):
 
 
 class ReadProducts(BaseModel):
+    id: int
     name: str
     price: int
 
@@ -20,6 +21,7 @@ class OrderCreateSchema(BaseModel):
 
 
 class ReadOrder(BaseModel):
+    id: int
     coupon: ReadCoupon | None
     products: list[ReadProducts]
 

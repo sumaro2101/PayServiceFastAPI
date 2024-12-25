@@ -44,13 +44,13 @@ router = APIRouter(prefix='/orders',
                                       'value': {
                                           'code': ErrorCode.NOT_FOUND_PRODUCTS,
                                           'reason': 'Not found products ids 1, 2, 3',
-                                      }
-                                  },
+                                          }
+                                      },
+                                  }
                               }
                           }
-                       }
-                   },
-             },
+                       },
+                 },
              )
 async def create_order_api_view(
     order: OrderCreateSchema,
@@ -65,12 +65,40 @@ async def create_order_api_view(
 
 
 @router.patch('/{order_id}/update',
-              name='Обновление заказа',
+              name='orders:patch',
+              dependencies=[Depends(superuser)],
+              response_model=ReadOrder,
+              responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+                 status.HTTP_400_BAD_REQUEST: {
+                     "description": "Empty list products.",
+                 },
+                 status.HTTP_404_NOT_FOUND: {
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.NOT_FOUND_PRODUCTS: {
+                                      'summary': 'Not found some products',
+                                      'value': {
+                                          'code': ErrorCode.NOT_FOUND_PRODUCTS,
+                                          'reason': 'Not found products ids 1, 2, 3',
+                                          }
+                                      },
+                                  }
+                              }
+                          }
+                       },
+                 },
               )
 async def update_order_api_view(
     attrs: OrderUpdateSchema,
     order: Order = Depends(get_order_by_id),
-    user: User = Depends(superuser),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.update_order(session=session,

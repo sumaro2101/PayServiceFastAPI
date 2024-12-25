@@ -6,6 +6,7 @@ from config.models import Order
 from .schemas import OrderCreateSchema, OrderUpdateSchema
 from .utils import get_list_orders_to_append
 from .dao import OrderDAO
+from .common import ErrorCode
 from api_v1.promos.dao import PromoDAO
 
 
@@ -74,7 +75,7 @@ async def update_order(session: AsyncSession,
         ids_product = attrs['products']
         if ids_product == []:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail='Нельзя указывать заказ без продуктов',
+                                detail=ErrorCode.CANT_BE_EMPTY_LIST_PRODUCTS,
                                 )
         else:
             products = await get_list_orders_to_append(
