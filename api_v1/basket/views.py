@@ -200,12 +200,24 @@ async def delete_products(
     return {'deleted': product}
 
 
-@router.delete(path='/delete-all-products')
+@router.delete(path='/delete-all-products',
+               name='basket:delete_all_product',
+               dependencies=[Depends(active_user)],
+               responses={
+                   status.HTTP_401_UNAUTHORIZED: {
+                       "description": "Missing token or inactive user.",
+                    },
+                   status.HTTP_400_BAD_REQUEST: {
+                       "description": "Basket in frize state.",
+                   },
+                },
+               status_code=status.HTTP_204_NO_CONTENT,
+               )
 async def delete_all_products(
     basket: Basket = Depends(get_or_create_basket),
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
-    return await crud.delete_all_products(
+    await crud.delete_all_products(
         basket=basket,
         session=session,
         )

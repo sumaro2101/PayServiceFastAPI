@@ -227,9 +227,6 @@ async def delete_all_products(basket: Basket,
     check_frize_basket(basket=basket)
     basket.products.clear()
     await session.commit()
-    return dict(state='success',
-                detail='Basket is clear',
-                )
 
 
 def check_frize_basket(basket: Basket) -> None:
