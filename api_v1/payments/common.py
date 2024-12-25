@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class ErrorCode(str, Enum):
-    PROFILE_IS_ALREADY_EXISTS = "PROFILE_IS_ALREADY_EXISTS"
     FORBIDDEN = 'FORBIDDEN'
+    STRIPE_EXPIRE_ERROR = 'STRIPE_EXPIRE_ERROR'
