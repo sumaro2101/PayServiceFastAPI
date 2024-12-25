@@ -18,6 +18,7 @@ from config.models.promo import Coupon
 from config.models.user import User
 from config import settings
 from .schemas import CouponeNameSchema
+from .common import ErrorCode
 
 
 class Payment:
@@ -34,7 +35,7 @@ class Payment:
                  basket: Basket,
                  session: AsyncSession,
                  ) -> None:
-        self.coupon = coupon.number
+        self.coupon = coupon
         self.basket = basket
         self.products = basket.products
         self.user = user
@@ -65,8 +66,8 @@ class Payment:
         )
         if promo_in_orders:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(coupone='This coupon '
-                                            'is already used'))
+                                detail=ErrorCode.COUPON_ALREADY_USED,
+                                )
         return
 
     def _check_coupon_having(self,
@@ -75,7 +76,8 @@ class Payment:
                              ) -> None:
         if coupon not in user.coupons:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(coupon='You not have this coupon'))
+                                detail=ErrorCode.COUPON_NOT_HAVE_USER,
+                                )
 
     @classmethod
     def check_products(cls,
@@ -84,7 +86,7 @@ class Payment:
         if not products:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='For payment you need no less 1 product',
+                detail=ErrorCode.ZERO_PRODUCTS_IN_BASKET,
                 )
 
     @classmethod

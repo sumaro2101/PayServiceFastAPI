@@ -1,14 +1,16 @@
 from fastapi import APIRouter, Depends, status
+from fastapi_users.router.common import ErrorModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import crud
+from .common import ErrorCode
 from .dependencies import get_or_create_basket
 from api_v1.products.dependencies import get_product_by_id
 from api_v1.auth.permissions import active_user
 from api_v1.users.dao import UserDAO
 from config.database import db_connection
 from config.models import Basket, Product, User
-from .schemas import CouponeNameSchema, BasketView
+from .schemas import CouponeNameSchema, BaseBasketSchema, LinkToPayment
 
 
 router = APIRouter(prefix='/basket',
@@ -17,7 +19,8 @@ router = APIRouter(prefix='/basket',
 
 @router.get(path='/get',
             name='basket:get',
-            response_model=BasketView,
+            response_model=BaseBasketSchema,
+            dependencies=[Depends(active_user)],
             responses={
                 status.HTTP_401_UNAUTHORIZED: {
                     "description": "Missing token or inactive user.",
@@ -28,9 +31,51 @@ async def get_basket(basket: Basket = Depends(get_or_create_basket)):
     return basket
 
 
-@router.put(path='/buy')
+@router.put(path='/buy',
+            name='basket:buy',
+            dependencies=[Depends(active_user)],
+            response_model=LinkToPayment,
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                    "description": "Missing token or inactive user.",
+                    },
+                status.HTTP_400_BAD_REQUEST: {
+                    'model': ErrorModel,
+                    'content': {
+                        'application/json': {
+                            'examples': {
+                                ErrorCode.COUPON_ALREADY_USED: {
+                                    'summary': 'Coupon is used.',
+                                    'value': {
+                                        'detail': ErrorCode.COUPON_ALREADY_USED,
+                                        }
+                                    },
+                                ErrorCode.COUPON_NOT_HAVE_USER: {
+                                    'summary': 'User not found from user',
+                                    'value': {
+                                        'detail': ErrorCode.COUPON_NOT_HAVE_USER,
+                                        }
+                                    },
+                                ErrorCode.ZERO_PRODUCTS_IN_BASKET: {
+                                    'summary': 'Zero products in basket',
+                                    'value': {
+                                        'detail': ErrorCode.ZERO_PRODUCTS_IN_BASKET,
+                                        }
+                                    },
+                                ErrorCode.STRIPE_PAYMENT_ERRORS: {
+                                    'summary': 'Individual Errors Stripe',
+                                    'value': {
+                                        'detail': ErrorCode.STRIPE_PAYMENT_ERRORS,
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    },
+                },
+            )
 async def buy_products(
-    coupone: CouponeNameSchema,
+    coupon: CouponeNameSchema,
     user: User = Depends(active_user),
     basket: Basket = Depends(get_or_create_basket),
     session: AsyncSession = Depends(db_connection.session_geter),
@@ -41,16 +86,13 @@ async def buy_products(
         many_to_many=(User.coupons,),
     )
     payment = crud.Payment(
-        coupon=coupone,
+        coupon=coupon.coupon_name,
         user=user_with_coupon,
         basket=basket,
         session=session,
     )
     payment_session = await payment.get_session()
-    return dict(
-        state='success',
-        url_payment=payment_session.url,
-        )
+    return {'link': payment_session.url}
 
 
 @router.put(path='/add-product/{product_id}')

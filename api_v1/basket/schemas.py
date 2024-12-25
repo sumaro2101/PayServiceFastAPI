@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_core import Url
 
 
 class ProductSchema(BaseModel):
@@ -19,6 +20,10 @@ class BasketSchema(BaseBasketSchema):
     id: int
 
 
+class LinkToPayment(BaseModel):
+    link: Url
+
+
 class BasketView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -28,4 +33,4 @@ class BasketView(BaseModel):
 class CouponeNameSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    number: str | None = Field(default=None)
+    coupon_name: str | None = Field(default=None)
