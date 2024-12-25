@@ -36,18 +36,22 @@ async def create_order(session: AsyncSession,
                        user_id: int,
                        order_schema: OrderCreateSchema,
                        ) -> Order:
+    if not order_schema.products:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=ErrorCode.CANT_BE_EMPTY_LIST_PRODUCTS,
+                            )
     coupon_id = None
-    if order_schema.promocode:
+    if order_schema.coupon_name:
         coupon = await PromoDAO.find_item_by_args(
             session=session,
-            number=order_schema.promocode,
+            number=order_schema.coupon_name,
         )
         coupon_id = coupon.id
     order = await OrderDAO.add(
         session=session,
         coupon_id=coupon_id,
         user_id=user_id,
-        **order_schema.model_dump(exclude='products, promocode'),
+        **order_schema.model_dump(exclude='products, coupon_name'),
     )
     new_order = await OrderDAO.find_item_by_args(
         session=session,

@@ -1,24 +1,30 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 
 
-class BaseOrderSchema(BaseModel):
+class ReadCoupon(BaseModel):
+    number: str
+    discount: float
 
-    model_config = ConfigDict()
 
-    promocode: Optional[str] = Field(default=None)
+class ReadProducts(BaseModel):
+    name: str
+    price: int
+
+
+class OrderCreateSchema(BaseModel):
+
+    coupon_name: str | None = Field(default=None)
     products: list[int]
 
 
-class OrderCreateSchema(BaseOrderSchema):
-
-    pass
+class ReadOrder(BaseModel):
+    coupon: ReadCoupon | None
+    products: list[ReadProducts]
 
 
 class OrderUpdateSchema(BaseModel):
 
-    model_config = ConfigDict()
-
-    promocode: Optional[str] = Field(default=None)
+    coupon_name: Optional[str] = Field(default=None)
     products: Optional[list[int]] = Field(default=None)
