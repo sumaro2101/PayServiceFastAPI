@@ -152,13 +152,24 @@ async def get_order_api_view(order: Order = Depends(get_order_by_id),
 
 
 @router.delete('/{order_id}/delete',
-               name='Удаление заказа',
+               name='order:delete',
                status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(superuser)],
+               responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Not a superuser.",
+                 },
+                 status.HTTP_404_NOT_FOUND: {
+                     "description": "Order not found",
+                 },
+                 },
                )
 async def delete_order_api_view(
     session: AsyncSession = Depends(db_connection.session_geter),
     order: Order = Depends(get_order_by_id),
-    user: User = Depends(superuser),
 ):
     await crud.delete_order(
         session=session,
