@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi_users.router.common import ErrorModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api_v1.auth.permissions import superuser
+from api_v1.auth.permissions import superuser, active_user
 from .schemas import (OrderCreateSchema,
                       OrderUpdateSchema,
                       ReadOrder,
@@ -123,6 +123,32 @@ async def list_orders_api_view(
     session: AsyncSession = Depends(db_connection.session_geter),
 ):
     return await crud.list_orders(session=session)
+
+
+@router.get(path='/get/{order_id}',
+            name='orders:get',
+            dependencies=[Depends(active_user)],
+            response_model=ReadOrder,
+            responses={
+                 status.HTTP_401_UNAUTHORIZED: {
+                     "description": "Missing token or inactive user.",
+                 },
+                 status.HTTP_403_FORBIDDEN: {
+                     "description": "Permisson Denied for this order."
+                 },
+                 status.HTTP_404_NOT_FOUND: {
+                     "description": "Order not found",
+                 },
+            },
+            )
+async def get_order_api_view(order: Order = Depends(get_order_by_id),
+                             user: User = Depends(active_user),
+                             ):
+    if not user.is_superuser and order.user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=ErrorCode.PERMISSION_DENIED,
+                            )
+    return order
 
 
 @router.delete('/{order_id}/delete',
