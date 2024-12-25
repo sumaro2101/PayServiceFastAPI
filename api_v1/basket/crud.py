@@ -187,13 +187,13 @@ class Payment:
 async def add_product_basket(basket: Basket,
                              product: Product,
                              session: AsyncSession,
-                             ) -> dict:
+                             ) -> Product:
     check_frize_basket(basket=basket)
     try:
         if not product.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=dict(product='This product is not active'),
+                detail=ErrorCode.PRODUCT_NOT_ACTIVE,
                 )
         basket.products.append(product)
         logger.info(basket.products)
@@ -201,12 +201,9 @@ async def add_product_basket(basket: Basket,
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=dict(product='Этот товар уже был добален в корзину'),
+            detail=ErrorCode.PRODUCT_ADDED_YET,
             )
-    return dict(state='success',
-                detail='Product is add success',
-                product=product,
-                )
+    return product,
 
 
 async def delete_product_basket(basket: Basket,
@@ -245,10 +242,5 @@ def check_frize_basket(basket: Basket) -> None:
     """
     if basket.unique_temporary_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=dict(
-                                basket='В данный момент корзина '
-                                'имеет фиксированное состояние '
-                                'изза ожидающего платежа. '
-                                'Если вы хотите добавить товар, '
-                                'неоходимо отменить платеж.',
-                                ))
+                            detail=ErrorCode.FRIZE_STATE_BASKET,
+                            )

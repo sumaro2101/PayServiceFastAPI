@@ -10,7 +10,11 @@ from api_v1.auth.permissions import active_user
 from api_v1.users.dao import UserDAO
 from config.database import db_connection
 from config.models import Basket, Product, User
-from .schemas import CouponeNameSchema, BaseBasketSchema, LinkToPayment
+from .schemas import (CouponeNameSchema,
+                      BaseBasketSchema,
+                      LinkToPayment,
+                      ProductSchema,
+                      )
 
 
 router = APIRouter(prefix='/basket',
@@ -95,7 +99,47 @@ async def buy_products(
     return {'link': payment_session.url}
 
 
-@router.put(path='/add-product/{product_id}')
+@router.put(path='/add-product/{product_id}',
+            name='basket:add_product',
+            dependencies=[Depends(active_user)],
+            response_model=ProductSchema,
+            responses={
+                status.HTTP_401_UNAUTHORIZED: {
+                    "description": "Missing token or inactive user.",
+                    },
+                status.HTTP_404_NOT_FOUND: {
+                    "description": "Product not found.",
+                    },
+
+                status.HTTP_400_BAD_REQUEST: {
+                    'model': ErrorModel,
+                    'content': {
+                        'application/json': {
+                            'examples': {
+                                ErrorCode.PRODUCT_NOT_ACTIVE: {
+                                    'summary': 'Products is not active.',
+                                    'value': {
+                                        'detail': ErrorCode.PRODUCT_NOT_ACTIVE,
+                                        }
+                                    },
+                                ErrorCode.PRODUCT_ADDED_YET: {
+                                    'summary': 'Product contains in basket yet.',
+                                    'value': {
+                                        'detail': ErrorCode.PRODUCT_ADDED_YET,
+                                        }
+                                    },
+                                ErrorCode.FRIZE_STATE_BASKET: {
+                                    'summary': 'Basket in frize state',
+                                    'value': {
+                                        'detail': ErrorCode.FRIZE_STATE_BASKET,
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    },
+                },
+            )
 async def add_products(
     basket: Basket = Depends(get_or_create_basket),
     product: Product = Depends(get_product_by_id),
