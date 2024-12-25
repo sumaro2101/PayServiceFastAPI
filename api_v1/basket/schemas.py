@@ -1,19 +1,37 @@
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_core import Url
+
+
+class ProductSchema(BaseModel):
+    name: str
+    description: str
+    price: int
+
+
+class AddProduct(BaseModel):
+    added: ProductSchema
+
+
+class DeletedProduct(BaseModel):
+    deleted: ProductSchema
 
 
 class BaseBasketSchema(BaseModel):
     """Схема корзины
     """
     model_config = ConfigDict(from_attributes=True)
-    
-    user_id: int
-    products: list[int] = Field(default_factory=list)
+
+    products: list[ProductSchema]
 
 
 class BasketSchema(BaseBasketSchema):
     id: int
 
- 
+
+class LinkToPayment(BaseModel):
+    link: Url
+
+
 class BasketView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,4 +41,4 @@ class BasketView(BaseModel):
 class CouponeNameSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    number: str | None = Field(default=None)
+    coupon_name: str | None = Field(default=None)

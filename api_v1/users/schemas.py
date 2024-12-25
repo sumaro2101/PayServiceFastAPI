@@ -11,10 +11,11 @@ class BaseProfileUser(BaseModel):
     bio: str | None
 
 
-class ProfileShema(BaseProfileUser):
+class ProfileRead(BaseProfileUser):
 
     id: int
 
 
 class ProfileCreateShema(BaseProfileUser):
+
     pass

@@ -5,6 +5,7 @@ from config.models import User
 from config.database import db_connection
 from api_v1.users.dependencies import get_user_by_hash
 from . import crud
+from .schemas import ReadSuccessPayment
 
 
 router = APIRouter(prefix='/payments',
@@ -12,7 +13,18 @@ router = APIRouter(prefix='/payments',
                    )
 
 
-@router.get(path='/success/{uid}/{token}/{unique_code}')
+@router.get(path='/success/{uid}/{token}/{unique_code}',
+            name='payments:success',
+            response_model=ReadSuccessPayment,
+            responses={
+                status.HTTP_403_FORBIDDEN: {
+                    'description': 'Hash is wrong or unique code or basket empty.',
+                },
+                status.HTTP_400_BAD_REQUEST: {
+                    'description': 'Stripe expire session error.',
+                }
+            },
+            )
 async def success_payment(
     unique_code: str,
     user: User = Depends(get_user_by_hash),
@@ -28,7 +40,16 @@ async def success_payment(
 
 
 @router.get(path='/cancel/{uid}/{token}/{unique_code}',
+            name='payment:cancel',
             status_code=status.HTTP_204_NO_CONTENT,
+            responses={
+                status.HTTP_403_FORBIDDEN: {
+                    'description': 'Hash is wrong or unique code.',
+                },
+                status.HTTP_400_BAD_REQUEST: {
+                    'description': 'Stripe expire session error.',
+                }
+            },
             )
 async def get_cancel(
     unique_code: str,

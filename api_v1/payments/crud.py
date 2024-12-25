@@ -7,6 +7,7 @@ from config.models import User, Basket, Order
 from api_stripe.api import ExpireSession
 from api_v1.basket.dao import BasketDAO
 from api_v1.orders.dao import OrderDAO
+from .common import ErrorCode
 
 
 class PaymentManager:
@@ -31,7 +32,7 @@ class PaymentManager:
         if not unique_code:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=dict(order='Permission Denied'),
+                detail=ErrorCode.FORBIDDEN,
                 )
 
     def _check_basket(self,
@@ -40,7 +41,7 @@ class PaymentManager:
         if not basket:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=dict(order='Permission Denied'),
+                detail=ErrorCode.FORBIDDEN,
                 )
 
     async def _reset_basket_state(self,
@@ -64,7 +65,7 @@ class PaymentManager:
         except _error.InvalidRequestError as ex:
             message = error_stripe_handle(ex)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=dict(payment=message))
+                                detail=message)
 
     async def _get_basket(self,
                           user_id: int,
