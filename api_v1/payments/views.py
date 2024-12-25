@@ -23,7 +23,7 @@ router = APIRouter(prefix='/payments',
                 status.HTTP_400_BAD_REQUEST: {
                     'description': 'Stripe expire session error.',
                 }
-            }
+            },
             )
 async def success_payment(
     unique_code: str,
@@ -40,7 +40,16 @@ async def success_payment(
 
 
 @router.get(path='/cancel/{uid}/{token}/{unique_code}',
+            name='payment:cancel',
             status_code=status.HTTP_204_NO_CONTENT,
+            responses={
+                status.HTTP_403_FORBIDDEN: {
+                    'description': 'Hash is wrong or unique code.',
+                },
+                status.HTTP_400_BAD_REQUEST: {
+                    'description': 'Stripe expire session error.',
+                }
+            },
             )
 async def get_cancel(
     unique_code: str,
