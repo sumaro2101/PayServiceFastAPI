@@ -21,7 +21,9 @@ async def get_list_orders_to_append(session: AsyncSession,
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Not found products ids {ids}'
+            detail={'code': ErrorCode.NOT_FOUND_PRODUCTS,
+                    'reason': f'Not found products ids {ids}',
+                    }
         )
     return list_products
 

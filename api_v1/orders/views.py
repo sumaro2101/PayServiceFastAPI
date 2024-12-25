@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status
+from fastapi_users.router.common import ErrorModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api_v1.auth.permissions import superuser
@@ -10,6 +11,7 @@ from . import crud
 from config.database import db_connection
 from config.models import Order, User
 from .dependencies import get_order_by_id
+from .common import ErrorCode
 
 
 router = APIRouter(prefix='/orders',
@@ -33,8 +35,21 @@ router = APIRouter(prefix='/orders',
                      "description": "Empty list products.",
                  },
                  status.HTTP_404_NOT_FOUND: {
-                     "description": "Not found some products."
-                 },
+                       'model': ErrorModel,
+                       'content': {
+                          'application/json': {
+                              'examples': {
+                                  ErrorCode.NOT_FOUND_PRODUCTS: {
+                                      'summary': 'Not found some products',
+                                      'value': {
+                                          'code': ErrorCode.NOT_FOUND_PRODUCTS,
+                                          'reason': 'Not found products ids 1, 2, 3',
+                                      }
+                                  },
+                              }
+                          }
+                       }
+                   },
              },
              )
 async def create_order_api_view(
